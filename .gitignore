@@ -1,0 +1,19 @@
+# build output (python src/kedit/build.py makes it again)
+src/kedit/build/
+
+# test runs: MAME state, disks written by the tests, screenshots, logs
+work/
+
+# Python
+__pycache__/
+*.pyc
+
+# scratch copies made by the tools
+*.get.dsk
+
+# editor and OS files
+.vscode/
+.idea/
+Thumbs.db
+Desktop.ini
+.DS_Store
