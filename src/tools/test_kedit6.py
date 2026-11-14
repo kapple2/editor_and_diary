@@ -3,7 +3,7 @@ line, also inside a Hangul run), the left arrow deleting backward, Ctrl-B moving
 import session as s
 
 W = "W 60"
-steps = ["T A1", "E", "T A2", "E", "E", "T B1", "E", "T B2", "E", "T B3", "E", "E", "T C1", "E", "T C2", "E", "T C3Q<x08>",
+steps = ["T A1", "E", "T A2", "E", "E", "T B1", "E", "T B2", "E", "T B3", "E", "E", "T C1", "E", "T C2", "E", "T C3Q<x13>",
          W, "T <ES>G 1", "E", W, "T <ES>DP", "E",              # A1 A2 go; the cursor is on the empty line
          W, "T <ES>G 2", "E", W, "T <ES>D 2", "E", "S lines",   # B1 B2 go
          W, "T <ES>G 4", "E", "T <x0E><x02><x18>",              # C1: end, left, delete to the end -> C

@@ -3,11 +3,11 @@ whole. 1: 안녕, 3 x Backspace -> 안. 2: 안녕, 4 x -> nothing. 3: 갑사, 3 
 4: 안녕, cursor left and right (typing is over), Backspace -> 안."""
 import session as s
 
-steps = ["T <CA>DKSSUD<x08><x08><x08>", "E", "S one",
-         "T DKSSUD<x08><x08><x08><x08>", "E",
-         "T RKQTK<x08><x08>", "S two", "T <x08>", "E",
-         "T DKSSUD<x02><x15><x08><CA>Z", "E",          # Z must land where the deleted character was
-         "T ABC<x08>D", "E",                           # ABD
+steps = ["T <CA>DKSSUD<x13><x13><x13>", "E", "S one",
+         "T DKSSUD<x13><x13><x13><x13>", "E",
+         "T RKQTK<x13><x13>", "S two", "T <x13>", "E",
+         "T DKSSUD<x02><x15><x13><CA>Z", "E",          # Z must land where the deleted character was
+         "T ABC<x13>D", "E",                           # ABD
          "T ABC<x02><x02><x04>X", "S four",            # left twice, Ctrl-D, X: AXC
          "W 60", "T <ES>W T8", "E", "W 900",
          "W 60", "T <ES>Q", "E", "W 900"]

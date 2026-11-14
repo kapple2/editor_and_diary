@@ -13,7 +13,7 @@ def bar(tag):
 
 steps = [W, "T A", W] + bar("one letter") + ["T BCDEFGHIJ", W] + bar("ten letters")
 steps += ["T <CA>DKSSUD<CA>", W] + bar("hangul")                       # 안녕: Ctrl-K, 6 keys, Ctrl-A = 8 bytes
-steps += ["T <x08><x08><x08>", W] + bar("after three backspaces")
+steps += ["T <x13><x13><x13>", W] + bar("after three backspaces")
 steps += [W, "T <ES>W T10A", "E", "W 900", "T Z", W]                   # saved as T10A, then changed
 steps += ["T <ES>N", "E", "W 200", "S asks", "T Q", "W 200"] + bar("other key: back to the text")
 steps += ["T <ES>N", "E", "W 200", "T Y", "W 900"] + bar("Y: saved, new text")

@@ -1,4 +1,4 @@
-; KEDIT 1.4 - a Korean text editor on K-HANGEUL (Apple II Plus, DOS 3.3, 48K + language card)
+; KEDIT 1.6 - a Korean text editor on K-HANGEUL (Apple II Plus, DOS 3.3, 48K + language card)
 ;
 ; BRUN KEDIT. Text is kept exactly as a K-HANGEUL text file holds it (bit 7 set, Hangul runs Ctrl-K .. Ctrl-A,
 ; lines end with $8D), in a gap buffer from the end of this program up to HIMEM. The screen is drawn by printing to
@@ -69,7 +69,8 @@ T5      = $1F
 
 ROWS    = 15
 STROW   = 15
-SCRW    = 45
+SCRW    = 46                    ; all the driver's columns. The driver would wrap (and at the bottom row scroll) after
+WIDE    = 47                    ; the last column, so while KEDIT draws, the window is one column wider than the screen
 MAXLN   = 250
 CR      = $8D
 HK      = $8B
@@ -142,6 +143,8 @@ start:  cld
         jsr HOME
         lda #SPC                ; the driver clears its screen at the first character after HOME
         jsr putc
+        lda #WIDE
+        sta WNDWDTH
         ldx #ROWS
 @r:     lda #SCRW
         sta rowlen,x            ; the screen still shows what was there: clear every row once
@@ -212,6 +215,8 @@ quit:   lda TXTTAB              ; the program sat in BASIC's area: leave an empt
         sta INVFLG
         lda #16
         sta WNDBTM
+        lda #46
+        sta WNDWDTH
         jsr HOME
         ldx savesp
         txs
@@ -276,20 +281,23 @@ dispatch:
         pha
         rts
 
-ctltab: .addr bell-1, k_han-1, k_left-1, bell-1, k_delf-1, k_end-1, k_findn-1, bell-1     ; @ A B C D E F G
-        .addr k_bs-1, k_tab-1, k_down-1, k_up-1, k_redraw-1, k_ret-1, k_eol-1, k_bol-1   ; H I J K L M N O
-        .addr k_paste-1, k_case-1, k_undo-1, bell-1, k_top-1, k_right-1, bell-1, k_pgup-1 ; P Q R S T U V W
+ctltab: .addr bell-1, k_han-1, k_left-1, bell-1, k_delf-1, k_end-1, k_findn-1, k_copy-1     ; @ A B C D E F G
+        .addr k_lft-1, k_tab-1, k_down-1, k_up-1, k_redraw-1, k_ret-1, k_eol-1, k_bol-1   ; H I J K L M N O
+        .addr k_paste-1, k_case-1, k_undo-1, backsp-1, k_top-1, k_right-1, bell-1, k_pgup-1 ; P Q R S T U V W
         .addr k_deol-1, k_delln-1, k_pgdn-1, bell-1, bell-1, bell-1, bell-1, bell-1      ; X Y Z [ \ ] ^ _
 
 bell:   lda #$87
         jmp putc
 
-; the left arrow ($08; a PC's Backspace in an emulator): a II Plus has no DELETE key, so there it deletes backward
-; (Ctrl-B moves left). On a IIe and later it moves left and DELETE deletes.
-k_bs:   lda iie
-        beq @d
-        jmp k_left
-@d:     jmp backsp
+; $08 (the left arrow; Ctrl-H; a PC's Backspace in an emulator) moves left on every model. Backspace is Ctrl-S
+; (ctltab) and DELETE ($7F), on every model. On a II Plus with the Shift key mod, Shift-left also deletes backward
+; (gkgot sets the shift flag). A IIe has no such mod here: there Shift does nothing to the left arrow.
+k_lft:  lda iie
+        bne @l
+        lda shift
+        beq @l
+        jmp backsp
+@l:     jmp k_left
 
 k_han:  lda han
         eor #1
@@ -850,9 +858,15 @@ k_delf: jsr ed_begin
 @x:     lda T5
         jmp ed_line
 
-k_delln:
-        jsr ed_begin
-        ldy lbn                 ; keep the line (with its CR) for Ctrl-P
+; Ctrl-G: copy the cursor line (Ctrl-P puts it in)
+k_copy: jsr holdline
+        lda #<m_copied
+        ldy #>m_copied
+        jmp setmsg
+
+; keep the cursor line (with its CR) for Ctrl-P
+holdline:
+        ldy lbn
 @h:     lda lb,y
         sta hold,y
         dey
@@ -862,6 +876,11 @@ k_delln:
         sta holdn
         lda #1
         sta holdv
+        rts
+
+k_delln:
+        jsr ed_begin
+        jsr holdline
         lda hascr
         beq @last
         ldy #0
@@ -2208,8 +2227,12 @@ scroll2:
         ldx #0
         ldy #0
         jsr gotoxy
+        lda #46                 ; (the driver's own width while it scrolls: it moves WNDWDTH bytes of each text row)
+        sta WNDWDTH
         lda #$96
         jsr putc
+        lda #WIDE
+        sta WNDWDTH
         lda #16
         sta WNDBTM
         ldx rowlen+ROWS         ; (the status row's length is in the last slot)
@@ -2248,8 +2271,12 @@ scroll1:
         ldx #0
         ldy #ROWS-1
         jsr gotoxy
+        lda #46
+        sta WNDWDTH
         lda #CR
         jsr putc
+        lda #WIDE
+        sta WNDWDTH
         lda #16
         sta WNDBTM
         ldx rowlen+ROWS         ; (the status row's length is in the last slot)
@@ -2826,7 +2853,7 @@ status: lda stbg                ; the row is not an inverse bar (start, redraw, 
         lda #1
         sta psdry
         lda T1
-        ldx #SCRW-1
+        ldx #SCRW
         jsr putstr
         sta T0
         lda #0
@@ -2841,7 +2868,7 @@ status: lda stbg                ; the row is not an inverse bar (start, redraw, 
         lda #>sb
         adc #0
         sta SEGP+1
-        lda #SCRW-1
+        lda #SCRW
         sec
         sbc T0
         tax
@@ -2865,6 +2892,7 @@ status: lda stbg                ; the row is not an inverse bar (start, redraw, 
         sta stlen
 @keep:  lda #$FF
         sta INVFLG
+        jsr barstrip
         lda msgp+1              ; after a message the status is drawn whole
         beq @rem
         lda #1
@@ -2880,6 +2908,22 @@ status: lda stbg                ; the row is not an inverse bar (start, redraw, 
 @x:     rts
 
 abc:    .byte 'A'|$80, 'B'|$80, 'C'|$80
+
+; The driver's 46 columns are 276 pixels wide, the screen is 280. The 4 pixels at the right of the status bar are
+; painted here (bits 3-6 of the last byte, 39, of each of the 12 pixel lines of row 15), so that the bar spans the screen.
+barstrip:
+        ldx #11
+@l:     lda stripl,x
+        sta P1
+        lda striph,x
+        sta P1+1
+        ldy #0
+        lda (P1),y
+        ora #$78
+        sta (P1),y
+        dex
+        bpl @l
+        rts
 
 ; print A bytes of the N-byte string at SEGP, at most X columns, never cutting a syllable. A = columns used
 putstr: sta psn
@@ -3032,6 +3076,7 @@ command:
         sta stlen
         lda #1
         sta stfull
+        jsr barstrip
 @key:   jsr getkey
         cmp #$1B
         bne @k1
@@ -3044,6 +3089,8 @@ command:
         jsr k_han
         jmp @key
 @k3:    cmp #$08
+        beq @bs
+        cmp #$13
         beq @bs
         cmp #$18
         beq @bs
@@ -3291,19 +3338,14 @@ cmd_wq: jsr argname
         jmp quit
 @x:     rts
 
-cmd_e:  lda modf
-        beq @o
-        lda force
-        bne @o
-        lda #<m_unsaved
-        ldy #>m_unsaved
-        jmp setmsg
-@o:     lda argn
+cmd_e:  lda argn
         bne @l
         lda #<m_needname
         ldy #>m_needname
         jmp setmsg
-@l:     jsr keepname
+@l:     jsr askdiscard
+        bcs @x
+        jsr keepname
         jsr argname
         jsr load
         bcc @x
@@ -3340,10 +3382,13 @@ cmd_r:  lda argn
         jmp backname
 
 ; new text. Unsaved changes: ask. Y saves first (it needs a file name), N drops the changes, any other key goes back
-cmd_n:  lda modf
-        beq @n
+; Unsaved changes? Ask: Y saves first, N drops the changes, any other key cancels. Carry clear: go on (nothing to
+; save, or saved, or dropped); carry set: stay (cancelled, or the save failed: the message says why)
+askdiscard:
+        lda modf
+        beq @go
         lda force
-        bne @n
+        bne @go
         lda #<m_asksave
         ldy #>m_asksave
         jsr setmsg
@@ -3353,18 +3398,30 @@ cmd_n:  lda modf
         stx msgp+1
         and #$5F                ; y = Y
         cmp #'N'
-        beq @n
+        beq @go
         cmp #'Y'
-        bne @x
+        bne @stay
         jsr save
-        bcc @n
-@x:     rts
-@n:     jsr newbuf
+        bcc @go
+@stay:  sec
+        rts
+@go:    clc
+        rts
+
+; new text
+cmd_n:  jsr askdiscard
+        bcs @x
+        jsr newbuf
         lda #0
         sta fnlen
         lda #3
         sta dirty
-        rts
+@x:     rts
+
+cmd_copy:
+        jmp k_copy
+cmd_paste:
+        jmp k_paste
 
 cmd_nu: lda nums
         eor #1
@@ -3541,6 +3598,7 @@ cmd_ls: lda #0
         iny
         lda (P2),y
         tay
+        sty lscur               ; (the catalog is on track 17)
         pla
         jsr rdsec
         bcs @err
@@ -3561,13 +3619,166 @@ cmd_ls: lda #0
         bcs @sec
 @end:   ldx lsrow
         jsr rowclr
-        jsr pause
+        lda #0                  ; the last page: choose a file, or go back
+        jsr lspick
 @stop:  lda #3
         sta dirty
         rts
 @err:   lda #8
         jsr dosmsg
         jmp @stop
+
+; The listed rows are done: choose one with Ctrl-K / Ctrl-J, RETURN opens it, ESC goes back to the text, any other
+; key shows the next page (A = 1 if there is one; on the last page it goes back).
+; Carry set: stop listing (the text is shown again), clear: go on with the next page.
+lspick: sta lsmore
+        lda #0
+        sta lssel
+        lda lsrow
+        beq @key                ; (an empty disk: nothing to choose)
+@show:  lda #<m_lsask2
+        ldy #>m_lsask2
+        ldx lsmore
+        beq @m
+        lda #<m_lsask1
+        ldy #>m_lsask1
+@m:     jsr setmsg
+        jsr status
+        ldx lssel
+        jsr invrow
+@key:   jsr getkey
+        pha
+        lda lsrow
+        beq @k1
+        ldx lssel
+        jsr invrow              ; the row is normal again on every key
+@k1:    ldx #0
+        stx msgp+1
+        pla
+        cmp #$1B
+        beq @stop
+        cmp #$0D
+        beq @open
+        cmp #$0B
+        beq @up
+        cmp #$0A
+        beq @down
+        lda lsmore
+        beq @stop
+        clc                     ; the next page
+        rts
+@stop:  sec
+        rts
+@up:    lda lssel
+        beq @show
+        dec lssel
+        bpl @show
+@down:  ldx lssel
+        inx
+        cpx lsrow
+        bcs @show
+        stx lssel
+        bcc @show
+@open:  lda lsrow
+        beq @stop
+        jsr askdiscard
+        bcs @stop
+        jsr keepname            ; (the name of the text, for if the file cannot be opened)
+        ldx lssel
+        lda lssec,x
+        tay
+        lda #17
+        jsr rdsec               ; the sector of that entry again
+        bcs @stop
+        ldx lssel
+        ldy lsoffs,x
+        jsr lsbuf
+        iny
+        iny
+        iny                     ; the name: 30 bytes from offset 3, as the file manager wants it
+        ldx #0
+@c:     lda (P2),y
+        sta fname,x
+        iny
+        inx
+        cpx #30
+        bcc @c
+        ldx #30                 ; its length: the spaces at the end do not count
+@t:     dex
+        bmi @z
+        lda fname,x
+        cmp #SPC
+        beq @t
+@z:     inx
+        stx fnlen
+        jsr load
+        bcc @ok
+        jsr backname
+@ok:    sec
+        rts
+
+; the row X (0-14) of the screen shown the other way round: every pixel of its 12 lines turned over
+invrow: lda #0
+@m:     cpx #0
+        beq @g
+        clc
+        adc #12
+        dex
+        jmp @m
+@g:     sta T0
+        lda #12
+        sta T3
+@l:     lda T0
+        jsr hgrline
+        ldy #39
+@x:     lda (P1),y
+        eor #$7F
+        sta (P1),y
+        dey
+        bpl @x
+        inc T0
+        dec T3
+        bne @l
+        rts
+
+; P1 = the address of hi-res pixel line A (0-191): $2000 + (y and 7) * $400 + ((y >> 3) and 7) * $80 + (y >> 6) * 40
+hgrline:
+        sta T1
+        and #7
+        asl a
+        asl a
+        ora #$20
+        sta P1+1
+        lda T1
+        lsr a
+        lsr a
+        lsr a
+        and #7
+        lsr a                   ; A = block / 2, carry = block and 1
+        pha
+        lda #0
+        ror a
+        sta P1
+        pla
+        clc
+        adc P1+1
+        sta P1+1
+        lda T1
+        lsr a
+        lsr a
+        lsr a
+        lsr a
+        lsr a
+        lsr a
+        tax
+        lda t40,x
+        clc
+        adc P1
+        sta P1
+        bcc @x
+        inc P1+1
+@x:     rts
+t40:    .byte 0, 40, 80
 
 lsbuf:  lda fmbuf+4
         sta P2
@@ -3580,15 +3791,19 @@ lsbuf:  lda fmbuf+4
 lsline: lda lsrow
         cmp #ROWS
         bcc @go
-        jsr pause
-        cmp #$1B
-        bne @pg
-        sec
+        lda #1
+        jsr lspick
+        bcc @pg
         rts
 @pg:    lda #0
         sta lsrow
         jsr lsbuf
-@go:    lda #0
+@go:    ldx lsrow
+        lda lscur
+        sta lssec,x             ; where to find the entry again
+        lda lsoff
+        sta lsoffs,x
+        lda #0
         sta sbn
         ldy lsoff
         iny
@@ -4679,6 +4894,11 @@ force:  .res 1
 argp:   .res 1
 argn:   .res 1
 fnlen:  .res 1
+lscur:  .res 1                  ; the catalog sector being listed
+lsmore: .res 1
+lssel:  .res 1
+lssec:  .res ROWS               ; sector and offset of each listed row
+lsoffs: .res ROWS
 fnp:    .res 2                  ; the name for the file manager: fname or tmpname
 fname:  .res 30
 fsave:  .res 30

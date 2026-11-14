@@ -16,6 +16,7 @@ KHDISK = ROOT.parent / "proj-apple2-korean-high-resolution" / "DIST-github" / "d
 DRIVER = (("K-HANGEUL", "0x0F94"), ("FONT12", "0x6000"), ("FONT6X10", "0x7200"))       # file, load address
 KSTART = b"BRUN K-HANGEUL\nBRUN KEDIT\n"
 SAMPLE = "KEDIT 견본\n한글과 English 를 함께 씁니다.\nESC 를 누르고 H 를 치면 도움말이 나옵니다.\n"
+SUTRA_SRC = ROOT / "src" / "tools" / "samples" / "sutra.txt"    # two sample texts split by a line of =====
 
 
 def acx(*a, inp=None):
@@ -57,6 +58,12 @@ def build(dsk):
     acx("-pt", dsk, "KSTART", inp=KSTART)
     acx("-p", dsk, "KEDIT", "bin", "0x4000", inp=(ROOT / "src" / "kedit" / "build" / "KEDIT.bin").read_bytes())
     acx("-p", dsk, "SAMPLE", "TXT", "0", inp=nbyte.encode(SAMPLE))
+    for name, text in zip(("SUTRA1", "SUTRA2"), SUTRA_SRC.read_text(encoding="utf8").split("=====\n")):
+        lines = [ln.rstrip() for ln in text.split("\n")]
+        while lines and not lines[-1]:
+            lines.pop()
+        text = "\n".join(lines).replace("ㆍ", ".") + "\n"    # the middle dot U+318D has no key form: a full stop
+        acx("-p", dsk, name, "TXT", "0", inp=nbyte.encode(text))
     return dsk
 
 

@@ -1,4 +1,4 @@
-# KEDIT 1.4: a Korean text editor for K-HANGEUL
+# KEDIT 1.6: a Korean text editor for K-HANGEUL
 
 A full-screen text editor for the Apple II Plus (DOS 3.3, 48K, language card) on the K-HANGEUL 1.2b driver.
 It is written entirely in 6502 assembly (ca65). It needs no BASIC program and no K-BASIC.
@@ -16,7 +16,7 @@ Quitting returns to the `]` prompt. KEDIT uses BASIC's program memory, so a BASI
 ## Screen
 
 ```
-rows 0-14   text (45 columns; English 1 column, a Hangul syllable 2)
+rows 0-14   text (46 columns; English 1 column, a Hangul syllable 2)
 row 15      영 ABC 줄 12/39 칸 7 여유 7312 * DIARY        (an inverse bar; or a message, or the `명령:` command line)
 ```
 
@@ -27,16 +27,17 @@ since the last save, then the file name. Long lines wrap onto the next row.
 
 | Key | Action |
 |---|---|
-| Ctrl-B, → | one character left, right (one syllable in Hangul). On a IIe ← also moves left |
+| Ctrl-B, ← (Ctrl-H), Ctrl-U, → | one character left, right (one syllable in Hangul). Same on every model. II Plus with the Shift key mod: Shift-← deletes backward (as Ctrl-S) |
 | Ctrl-K, Ctrl-J | one row up, down (the ↑ ↓ keys of a IIe, and of a PC keyboard in an emulator, send these) |
 | Ctrl-O, Ctrl-N | start, end of the line |
 | Ctrl-W, Ctrl-Z | one screen up, down |
 | Ctrl-T, Ctrl-E | start, end of the file |
-| ← (Backspace on a PC) | II Plus: delete before the cursor. The Hangul syllable you are typing loses one key at a time (녕 → 녀 → ㄴ); a finished syllable goes whole. IIe: DELETE does this |
+| Ctrl-S, DELETE | delete before the cursor, on every model. The Hangul syllable you are typing loses one key at a time (녕 → 녀 → ㄴ); a finished syllable goes whole. `←` only moves left (a PC's Backspace sends `←` in an emulator, so use Ctrl-S) |
 | Ctrl-D | delete the character or syllable under the cursor |
 | Ctrl-X | delete from the cursor to the end of the line |
 | Ctrl-Y | delete the line (it is kept) |
-| Ctrl-P | put the kept line above the cursor line (undoes Ctrl-Y; also moves or copies a line) |
+| Ctrl-G | copy the line (kept for Ctrl-P; the text is not changed) |
+| Ctrl-P | put the kept line (cut with Ctrl-Y or copied with Ctrl-G) above the cursor line, as often as you like |
 | Ctrl-R | put the cursor line back as it was before you edited it; Ctrl-R again brings the edit back |
 | Ctrl-A | Hangul / English typing |
 | Ctrl-Q | case lock (English) |
@@ -57,12 +58,14 @@ draw the screen once.
 | `끝` | `Q` | quit (refused if there are unsaved changes) |
 | `끝!` | `Q!` | quit without saving |
 | `저장끝` | `WQ`, `X` | save and quit |
-| `열기 이름` | `E name` | open a file (`E!` drops unsaved changes); a missing file starts a new one |
+| `열기 이름` | `E name` | open a file; asks about unsaved changes like `N` (`E!` drops them without asking); a missing file starts a new one |
 | `넣기 이름` | `R name` | insert a file at the cursor |
 | `찾기 낱말` | `F word`, `/word` | find (Hangul and English; English ignores case); Ctrl-F repeats |
 | `줄 N` | `G N`, or just `N` | go to line N |
 | `번호` | `NU` | show / hide line numbers |
-| `목록` | `LS`, `CAT` | the files on the disk (lock mark, type, sectors, name); ESC stops at a full page |
+| `목록` | `LS`, `CAT` | the files on the disk (lock mark, type, sectors, name). At a full page and at the end: Ctrl-K / Ctrl-J choose a row (shown inverse), RETURN opens it (asks about unsaved changes first; a non-text file is refused), ESC goes back to the text, any other key shows the next page (on the last page it goes back) |
+| `복사` | `CP`, `COPY` | copy the cursor line (same as Ctrl-G) |
+| `붙임` | `PU`, `PASTE` | put the kept line above the cursor line (same as Ctrl-P) |
 | `정보` | `I` | size of the text and free memory, in bytes |
 | `지움 [N]` | `D [N]` | delete the cursor line, or N lines from it |
 | `문단지움` | `DP` | delete the paragraph: from the cursor line to the next empty line |
@@ -76,7 +79,7 @@ File names may be Hangul (`열기 일기`) or English.
 
 ## Limits
 
-- Text up to 7,644 bytes.
+- Text up to 6,983 bytes.
 - A line holds at most 250 bytes; a file with a longer line is refused.
 - The saved file always ends its last line with Return.
 - Ctrl-R covers the edits of one line. Joining, splitting or deleting lines cannot be undone, except a cut line (Ctrl-P).
@@ -98,11 +101,12 @@ File names may be Hangul (`열기 일기`) or English.
   It first replaces the driver and the fonts on the base image with those on the K-HANGEUL project's disk
   (`..\proj-apple2-korean-high-resolution\DIST-github\disk\K-HANGEUL.DSK`) if they differ, and says so. After such an
   update run all the tests on both cards.
-- Tests run KEDIT in MAME without a window, on a fresh disk each: `python src/tools/test_kedit1.py` ... `test_kedit10.py`.
+- Tests run KEDIT in MAME without a window, on a fresh disk each: `python src/tools/test_kedit1.py` ... `test_kedit11.py`.
   For the Saturn 128K card set `KEDIT_MAME_ARGS=-sl0 ssram` first.
   They compare the saved files byte for byte with the expected text, and leave screenshots in `work/sess/`.
   1 type and save; 2 a real 8 KB file: paging, search, edits, insert, save as; 3 wrap, syllable moves, case, help;
   4 cut/put a line, Ctrl-R, info, Hangul file name, catalog; 5 typing ahead; 6 delete commands, Ctrl-X, HELP; 7 Backspace in Hangul;
+  11 the catalog (choose and open, asking about unsaved changes), E asking, Ctrl-G / CP and Ctrl-P / PU;
   10 the free bytes on the status bar (against a Ctrl-L redraw) and N with unsaved changes;
   8 one-row scrolling up and down (frames per key, and the screen against a full redraw); 9 safe save (over a file, a locked
   file, a full disk).
@@ -111,7 +115,7 @@ File names may be Hangul (`열기 일기`) or English.
 
 ## How it works
 
-- Memory: code, messages and tables `$4000-$6DD2` (11,731 bytes), variables to `$7623`,
+- Memory: code, messages and tables `$4000-$7046` (12,359 bytes), variables to `$78B8`,
   then the text as a gap buffer up to `HIMEM` (`$9400`).
 - Work areas outside that block, so that the text gets the room: the line being edited is in the keyboard input
   buffer (`$0200`), the status and command lines in page 3 (`$0300-$03CF`). The file manager works in a free DOS file
@@ -128,3 +132,13 @@ File names may be Hangul (`열기 일기`) or English.
 - Files: DOS 3.3 file manager (`$3D6`); read as one range, written as the two halves of the gap buffer. `save` calls
   `writeto` (KEDIT.TMP), `fmdel` (the old file), then RENAME (file manager call 9; 6 is CATALOG).
   The catalog is read with RWTS (`$3D9`).
+
+## The screen width (1.5)
+
+The driver's text screen is 46 columns of 6 pixels, 276 of the 280 pixels of the hi-res page, so 4 pixels at the right
+are never drawn by it. KEDIT uses all 46 columns (`SCRW`). The driver wraps after the last column and, on the bottom row
+of its window, scrolls; so while KEDIT draws, the window is one column wider than the screen (`WIDE` = 47) and the
+driver never wraps; around a scroll it is put back to 46, because the driver's scroll moves `WNDWDTH` bytes of each text
+row. On exit it is 46 again. The 4 pixels at the right of the status bar (bits 3-6 of byte 39 of the 12 pixel lines of
+row 15) are painted by `barstrip` so that the inverse bar spans the screen; the table of the 12 addresses comes from
+`gen.py`. Selecting a catalog row turns the 12 pixel lines of that row over (`invrow`, `hgrline`).

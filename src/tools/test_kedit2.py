@@ -5,7 +5,7 @@ import session as s
 from session import nbyte
 
 _ALL = nbyte.encode((s.ROOT / "src" / "tools" / "testdata" / "sample.kbas").read_text(encoding="utf8"))
-SRC = _ALL[:_ALL.rindex(bytes([0x8D]), 0, 7400) + 1]      # whole lines, about 7,400 bytes: it must fit the text space
+SRC = _ALL[:_ALL.rindex(bytes([0x8D]), 0, 6800) + 1]      # whole lines, about 6,800 bytes: it must fit the text space
 INS = s.hi("AB\rCD\r")
 
 
@@ -35,8 +35,8 @@ steps = [W, "T <ES>E DIARY", "E", "W 900", "S loaded",
          W, "T <ES>NU", "E",
          W, "T <ES>G 1", "E", "T <x0E> <CA>-MX<CA>",
          W, "T <ES>G 2", "E", "T <x0F><x04>",
-         W, "T <ES>G 3", "E", "T <x0E> <CA>GKS<x08>F<CA>",
-         W, "T <ES>G 5", "E", "T <x0F><x08>",
+         W, "T <ES>G 3", "E", "T <x0E> <CA>GKS<x13>F<CA>",
+         W, "T <ES>G 5", "E", "T <x0F><x13>",
          W, "T <ES>G 5", "E", "T <x19>", "W 300", "S edited",     # (MAME types $0A as Return, so no Ctrl-J here)
          "T <x05>", W, "T <ES>R INS", "E", "W 900", "S inserted",
          W, "T <ES>W DIARY2", "E", "W 1200", "S saved",

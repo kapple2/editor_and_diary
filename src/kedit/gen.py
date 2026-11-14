@@ -17,7 +17,7 @@ MSGS = {
     "m_line": "줄",
     "m_col": "칸",
     "m_noname": "(이름 없음)",
-    "m_hello": "KEDIT 1.4   ESC: 명령   ESC H: 도움말",
+    "m_hello": "KEDIT 1.6   ESC: 명령   ESC H: 도움말",
     "m_saved": "저장했습니다",
     "m_loaded": "읽었습니다",
     "m_newfile": "새 파일입니다",
@@ -40,6 +40,9 @@ MSGS = {
     "m_bytes": " 바이트, 여유 ",
     "m_cmd": "명령:",
     "m_free": "여유",
+    "m_copied": "복사했습니다",
+    "m_lsask1": "^K/^J 고르기 RETURN 열기 ESC 끝 다른키 다음",
+    "m_lsask2": "^K/^J 고르기  RETURN 열기  ESC 돌아가기",
     "m_asksave": "저장할까요? Y:저장 N:버림 다른 키:취소",
     "m_sure": "모두 지우려면 DA! 또는 모두지움!",
 }
@@ -49,8 +52,9 @@ HELP = [
     "^B ->  왼쪽/오른쪽   ^K ^J  위/아래 줄",
     "^O ^N  줄 처음/끝    ^W ^Z  쪽 위/아래",
     "^T ^E  파일 처음/끝  ^L  화면 다시 그림",
-    "<-/DEL 앞 글자 지움  ^D  글자 지움",
+    "^S/DEL 앞 글자 지움  ^D  글자 지움",
     "^X  줄 끝까지 지움   ^Y  줄 지움 (^P 넣기)",
+    "^G  줄 복사 (^P 넣기)",
     "^R  줄 되돌리기      ^F  다시 찾기",
     "^A  한글/영문        ^Q  대문자/소문자",
     "ESC 명령 (한글이나 영문, RETURN 실행):",
@@ -58,7 +62,7 @@ HELP = [
     " 열기 E 이름  넣기 R 이름  새 N  목록 LS",
     " 찾기 F 낱말 (/낱말)  줄 G 번호  번호 NU",
     " 지움 D [줄수]  문단지움 DP  모두지움 DA!",
-    " 정보 I   도움 H (HELP, ?)",
+    " 정보 I  도움 H (HELP, ?)  복사 CP  붙임 PU",
 ]
 
 # command words: Korean word, English aliases, handler label
@@ -73,6 +77,8 @@ CMDS = [
     ("번호", ["NU"], "cmd_nu"),
     ("도움", ["H", "HELP", "?"], "cmd_h"),
     ("새", ["N", "NEW"], "cmd_n"),
+    ("복사", ["CP", "COPY"], "cmd_copy"),
+    ("붙임", ["PU", "PASTE"], "cmd_paste"),
     ("목록", ["LS", "CAT", "DIR", "LIST"], "cmd_ls"),
     ("정보", ["I"], "cmd_i"),
     ("지움", ["D"], "cmd_d"),
@@ -131,6 +137,10 @@ def main():
     # Shift + R E Q T W O P in Hangul mode -> the tense/compound keys - = * < > ; +
     L.append(f"shk: .byte {hexb(ord(c) for c in 'REQTWOP')}")
     L.append(f"shv: .byte {hexb(ord(c) for c in '-=*<>;+')}")
+    # hi-res addresses of the last byte (39) of pixel lines 180-191, the 12 lines of text row 15 (the status bar)
+    addr = [0x2000 + ((y & 7) << 10) + (((y >> 3) & 7) << 7) + (y >> 6) * 40 + 39 for y in range(180, 192)]
+    L.append(f"stripl: .byte {hexb(a & 255 for a in addr)}")
+    L.append(f"striph: .byte {hexb(a >> 8 for a in addr)}")
     OUT.write_text("\n".join(L) + "\n", encoding="ascii")
     print("wrote", OUT)
 
