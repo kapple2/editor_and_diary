@@ -1,4 +1,4 @@
-# KEDIT 1.6: a Korean text editor for K-HANGEUL
+# KEDIT 1.12: a Korean text editor for K-HANGEUL
 
 A full-screen text editor for the Apple II Plus (DOS 3.3, 48K, language card) on the K-HANGEUL 1.2b driver.
 It is written entirely in 6502 assembly (ca65). It needs no BASIC program and no K-BASIC.
@@ -7,7 +7,7 @@ Design notes: `../../EDITOR-PLAN.md`. It started from KEDIT 1.0 in the LTM proje
 
 ## Start
 
-Boot `disk/KEDIT.dsk`. The disk loads K-HANGEUL and goes straight into the editor.
+Boot `disk/kedit/KEDIT.dsk`. The disk loads K-HANGEUL and goes straight into the editor.
 (`HELLO` is K-HANGEUL's own three-line loader. It runs the exec file `KSTART`: `BRUN K-HANGEUL`, `BRUN KEDIT`.)
 From the `]` prompt of any K-HANGEUL disk that holds the file, `BRUN KEDIT` also works.
 
@@ -63,7 +63,8 @@ draw the screen once.
 | `찾기 낱말` | `F word`, `/word` | find (Hangul and English; English ignores case); Ctrl-F repeats |
 | `줄 N` | `G N`, or just `N` | go to line N |
 | `번호` | `NU` | show / hide line numbers |
-| `목록` | `LS`, `CAT` | the files on the disk (lock mark, type, sectors, name). At a full page and at the end: Ctrl-K / Ctrl-J choose a row (shown inverse), RETURN opens it (asks about unsaved changes first; a non-text file is refused), ESC goes back to the text, any other key shows the next page (on the last page it goes back) |
+| `목록 [disk]` | `LS [disk]`, `CAT` | the files on the disk (lock mark, type, sectors, name). At a full page and at the end: Ctrl-K / Ctrl-J choose a row (shown inverse), RETURN opens it (asks about unsaved changes first; a non-text file is refused), ESC goes back to the text, any other key shows the next page (on the last page it goes back) |
+| `디스크 S6,D2` | `CHD S6,D2` | the disk (slot, drive) that E, R, W and LS use from now on: DOS 3.3's `S6,D2`, `D2`, `S5` (also `2` = drive 2, `62` = slot 6 drive 2); it shows `디스크 [S6,D2]`. At start it is the DOS default disk. `LS S6,D2` lists that disk and makes it the current one (as in DOS) |
 | `복사` | `CP`, `COPY` | copy the cursor line (same as Ctrl-G) |
 | `붙임` | `PU`, `PASTE` | put the kept line above the cursor line (same as Ctrl-P) |
 | `정보` | `I` | size of the text and free memory, in bytes |
@@ -79,7 +80,7 @@ File names may be Hangul (`열기 일기`) or English.
 
 ## Limits
 
-- Text up to 6,983 bytes.
+- Text up to 7,431 bytes (1.12: the save writes the lines without their trailing spaces and without the empty lines after the last text; 7,755 in 1.11: the Shift keys on the command line; 7,765 in 1.10: the program got smaller; 6,461 in 1.9; 6,718 before CHD, 1.8).
 - A line holds at most 250 bytes; a file with a longer line is refused.
 - The saved file always ends its last line with Return.
 - Ctrl-R covers the edits of one line. Joining, splitting or deleting lines cannot be undone, except a cut line (Ctrl-P).
@@ -97,11 +98,11 @@ File names may be Hangul (`열기 일기`) or English.
 
 - `python src/kedit/build.py` writes `build/gen.inc` (Korean messages, command table, jamo tables), then assembles
   and links `build/KEDIT.bin` (load address `$4000`). It prints the sizes.
-- `python src/tools/mkdisk.py` builds `disk/KEDIT.dsk` from `disk/khangeul-base.dsk` (DOS 3.3, K-HANGEUL, fonts).
+- `python src/tools/mkdisk.py` builds `disk/kedit/KEDIT.dsk` from `disk/khangeul-base.dsk` (DOS 3.3, K-HANGEUL, fonts).
   It first replaces the driver and the fonts on the base image with those on the K-HANGEUL project's disk
   (`..\proj-apple2-korean-high-resolution\DIST-github\disk\K-HANGEUL.DSK`) if they differ, and says so. After such an
   update run all the tests on both cards.
-- Tests run KEDIT in MAME without a window, on a fresh disk each: `python src/tools/test_kedit1.py` ... `test_kedit11.py`.
+- Tests run KEDIT in MAME without a window, on a fresh disk each: `python src/tools/test_kedit1.py` ... `test_kedit13.py`.
   For the Saturn 128K card set `KEDIT_MAME_ARGS=-sl0 ssram` first.
   They compare the saved files byte for byte with the expected text, and leave screenshots in `work/sess/`.
   1 type and save; 2 a real 8 KB file: paging, search, edits, insert, save as; 3 wrap, syllable moves, case, help;
@@ -115,8 +116,13 @@ File names may be Hangul (`열기 일기`) or English.
 
 ## How it works
 
-- Memory: code, messages and tables `$4000-$7046` (12,359 bytes), variables to `$78B8`,
-  then the text as a gap buffer up to `HIMEM` (`$9400`).
+- Memory (1.12): code, messages and tables `$4000-$6EB7` (11,960 bytes), variables to `$76F8`,
+  then the text as a gap buffer up to `HIMEM` (`$9400`): 7,431 bytes. The 38 busiest variables are in the zero page (the equates near the
+  top of `kedit.s`): work bytes of Applesoft that the driver, DOS and the monitor do not touch. They are not cleared at the start (BSS is):
+  a new one must be set before it is read.
+- Comparing two builds: `python src/tools/kregress.py run <tag> [KEDIT.bin kedit.lbl]` runs all the tests with that binary and keeps the screens
+  and results, `cmp <tagA> <tagB>` compares them. The status bar shows the free bytes, so to compare builds of different sizes assemble the new
+  one with `-D TEXTCAP=<the old text space>` (a test build: see `start`). The catalog screens still differ (KEDIT's own sector count).
 - Work areas outside that block, so that the text gets the room: the line being edited is in the keyboard input
   buffer (`$0200`), the status and command lines in page 3 (`$0300-$03CF`). The file manager works in a free DOS file
   buffer instead of buffers of its own. The text page is not used: its screen holes belong to DOS and the slot cards.
@@ -142,3 +148,39 @@ driver never wraps; around a scroll it is put back to 46, because the driver's s
 row. On exit it is 46 again. The 4 pixels at the right of the status bar (bits 3-6 of byte 39 of the 12 pixel lines of
 row 15) are painted by `barstrip` so that the inverse bar spans the screen; the table of the 12 addresses comes from
 `gen.py`. Selecting a catalog row turns the 12 pixel lines of that row over (`invrow`, `hgrline`).
+
+## User-definable keys (1.7)
+
+KEDIT reads its key map from the file `KEYS` at every start (`loadkeys`); the Applesoft program `KEYCFG` writes it.
+There is one binary and one disk. (An earlier build of 1.7 had a second binary, `KEDITK`; it was merged into `KEDIT`.)
+KEDIT.bin is 12,870 bytes, text space 6,470 in 1.8 (CHD, `LS disk`: 248 bytes; in 1.7 12,624 and 6,718) (1.6: 12,359 and 6,983: the map 32, `helpx` about 55, `loadkeys` about 80,
+the lookups, one message).
+
+- **The key map** (`keymap`, 32 bytes inside the program file): for each control code `$00-$1F` the number of the action it runs.
+  An action number is the control code that runs it in `ctltab` (`ctltab` is not changed): 2 left, 21 right, 11 up, 10 down,
+  15 line start, 14 line end, 23 page up, 26 page down, 20 file start, 5 file end, 19 backspace, 4 delete character,
+  24 delete to line end, 25 delete line, 16 paste, 7 copy, 18 undo, 6 find again, 17 case, 9 tab, 12 redraw; 0 = bell.
+  Fixed (KEYCFG refuses them): `$01` (Ctrl-A, Hangul switch), `$08` (Ctrl-H, the left arrow, with Shift-delete on a II Plus),
+  `$0D` (RETURN), `$1B` (ESC; `dispatch` handles it before the map). `dispatch` does `lda keymap,x` before the `ctltab` jump.
+  The ESC command line and the other key reads keep their own raw codes, except `lspick` (the catalog), which maps the key.
+- **The key file** `KEYS`: a DOS binary file, 32 bytes, saved by KEYCFG with `BSAVE KEYS,A$300,L32` (so 4 header bytes
+  come first). `loadkeys` (called at start, before the first message) opens it with the file manager, reads 36 bytes into `cw`,
+  checks the header length is 32 and every number is at most 31, and copies the 32 bytes over `keymap`. Anything wrong
+  (no file, wrong length, a number above 31): the map stays the classic one (the identity map in the file) and the start-up
+  message is `m_nokeys` instead of `m_hello`. The shipped `KEYS` is the classic map.
+- **Help:** `gen.py` writes the help lines with a slot `{n}` (a byte below `$80`, n = the action number) wherever a key is
+  named. `helpx` (called from `cmd_h`) copies each line to `cb`, replaces a slot by `^` and the first key whose map entry is n
+  (`^-` if none), and shows that. A slot is two characters wide, like `^B`.
+- **KEYCFG** (`src/kedit/keycfg.bas`, Applesoft, screens in Hangul; the source is UTF-8 and `mkdisk.py` turns each Hangul run into Ctrl-K, two-set keys, Ctrl-A before `acx -bas`): one screen lists all 21 actions in two columns with their keys;
+  The right and left arrows (Ctrl-U, Ctrl-H; also `N`/`P`, space) move the `>`. A control key is assigned to the marked action, Ctrl-I included (Tab is Ctrl-I on a IIe; `I` also assigns Ctrl-I, for a II Plus). Arrows cannot be assigned: Ctrl-U and Ctrl-H are taken by the moves. `C` clear,
+  `R` reset (classic or IJKL), `S` save, `Q` quit. An action that lost its key to another, or has none, is shown in inverse.
+  The screen is drawn in full (from `HOME`, top to bottom) only at start and after the reset menu. A key press redraws only the entries whose
+  keys or `>` changed, placing each with `POKE 37` (row) and `POKE 36` (column); `VTAB` is not used (under this driver it lands on row n-2).
+  Each entry's last drawn state is kept in `E$`, so a key that changes nothing draws nothing. It reads keys
+  from `$C000` and also from K-HANGEUL's type-ahead ring (`$942B`, `$942C`, `$95AE`), because the driver takes keys typed
+  while it draws. The key map it writes is built in BASIC memory at `$300` (page 3).
+- **Disk:** `python src/tools/mkdisk.py` (or `build_all.bat`) builds `disk/kedit/KEDIT.dsk` with `KEYS` (classic), `KEYCFG`, and the rest.
+  The IJKL set (Ctrl-I up, J left, K down, L right, Tab on Ctrl-V, redraw on Ctrl-C, Ctrl-B free) is KEYCFG's `R`, `2`.
+- **Tests:** `test_kedit12.py` (IJKL `KEYS` put on the disk: the keys, Tab, the free Ctrl-B, the help screen, then a KEYCFG
+  session that rewrites `KEYS`) and `test_kedit13.py` (no `KEYS`, a `KEYS` of 20 bytes, a `KEYS` with a number above 31:
+  the message, and the classic keys work).

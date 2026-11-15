@@ -23,3 +23,7 @@ Desktop.ini
 
 # posting material (video)
 posting/
+
+# KDIARY: build output and the art preview picture
+src/kdiary/build/
+src/kdiary/art_preview.png

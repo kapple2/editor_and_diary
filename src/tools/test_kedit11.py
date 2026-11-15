@@ -9,8 +9,8 @@ A, B, C = s.hi("ALPHA\r"), s.hi("BRAVO\rBRAVO2\r"), s.hi("CHARLIE\r")
 
 
 def seed(disk):
-    # the sample files SUTRA1, SUTRA2 (on the boot disk since 2026-11-13) would move the rows of the catalog: take them off here
-    for name in ("SUTRA1", "SUTRA2"):
+    # the sample files SUTRA1, SUTRA2, KEYS, KEYCFG (on the boot disk) would move the rows of the catalog: take them off here (AAA then lands in the row of KEYS, BBB in that of KEYCFG)
+    for name in ("SUTRA1", "SUTRA2", "KEYS", "KEYCFG"):
         s.acx("-d", disk, name)
     s.put_text(disk, "AAA", A)
     s.put_text(disk, "BBB", B)
@@ -21,10 +21,10 @@ steps = [W, "T <ES>LS", "E", "W 300", "S list",
          DOWN, "W 100", "S second row", DOWN, "W 100", "S third row", UP, "W 100", UP, "W 100", UP, "W 100", "S back at the top",
          "T <ES>", "W 200", "S ESC back to the text",
          # open from the list: select AAA (a text that is not changed opens at once)
-         W, "T <ES>LS", "E", "W 300"] + [DOWN] * 7 + ["W 100", "S AAA selected", "E", "W 600", "S AAA open",
+         W, "T <ES>LS", "E", "W 300"] + [DOWN] * 6 + ["W 100", "S AAA selected", "E", "W 600", "S AAA open",
          # changed text: the list asks; another key cancels, N drops, Y saves
-         "T XY", W, "T <ES>LS", "E", "W 300"] + [DOWN] * 8 + ["E", "W 200", "S asks", "T Q", "W 200", "S cancelled",
-         W, "T <ES>LS", "E", "W 300"] + [DOWN] * 8 + ["E", "W 200", "T N", "W 600", "S BBB open (the change to AAA dropped)",
+         "T XY", W, "T <ES>LS", "E", "W 300"] + [DOWN] * 7 + ["E", "W 200", "S asks", "T Q", "W 200", "S cancelled",
+         W, "T <ES>LS", "E", "W 300"] + [DOWN] * 7 + ["E", "W 200", "T N", "W 600", "S BBB open (the change to AAA dropped)",
          # E with a changed text asks too; Y saves it
          "T Z", W, "T <ES>E CCC", "E", "W 200", "S E asks", "T Y", "W 900", "S CCC open",
          # copy a line and paste it twice, with the keys and with the commands

@@ -5,7 +5,7 @@ import session as s
 from session import nbyte
 
 _ALL = nbyte.encode((s.ROOT / "src" / "tools" / "testdata" / "sample.kbas").read_text(encoding="utf8"))
-SRC = _ALL[:_ALL.rindex(bytes([0x8D]), 0, 6800) + 1]      # whole lines, about 6,800 bytes: it must fit the text space
+SRC = _ALL[:_ALL.rindex(bytes([0x8D]), 0, 6500) + 1]      # whole lines, about 6,500 bytes: it must fit the text space
 INS = s.hi("AB\rCD\r")
 
 

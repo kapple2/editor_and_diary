@@ -14,7 +14,6 @@ ROOT = Path(__file__).resolve().parents[2]
 MAME = Path(r"D:\opt\classic\_emul\mame0289b_x64")
 S = ROOT / "work" / "mame"
 sys.path.insert(0, str(Path(__file__).parent))
-sys.path.insert(0, str(ROOT / "disk"))
 import mkdisk, nbyte  # noqa: E402
 
 for d in ("cfg", "nvram", "snap", "sta", "diff", "comments", "ini", "disks"):
@@ -39,7 +38,7 @@ def put_text(disk, name, data):
         raise RuntimeError(r.stderr.decode("latin1"))
 
 
-def run(name, steps, seed=None, timeout=900):
+def run(name, steps, seed=None, timeout=900, flop2=None):
     disk = S / "disks" / f"{name}.dsk"
     mkdisk.build(disk)
     if seed:
@@ -57,7 +56,7 @@ def run(name, steps, seed=None, timeout=900):
             "-rompath", str(MAME / "roms"), "-inipath", f"{MAME / 'ini'};{S / 'ini'}", "-cfg_directory", str(S / "cfg"),
             "-nvram_directory", str(S / "nvram"), "-snapshot_directory", str(S / "snap"),
             "-state_directory", str(S / "sta"), "-diff_directory", str(S / "diff"),
-            "-comment_directory", str(S / "comments"), "-flop1", str(disk),
+            "-comment_directory", str(S / "comments"), "-flop1", str(disk), *(["-flop2", str(flop2)] if flop2 else []),
             "-autoboot_script", str(ROOT / "src" / "tools" / "session.lua")]
     args += os.environ.get("KEDIT_MAME_ARGS", "").split()      # e.g. "-sl0 ssram" for the Saturn 128K card
     si = subprocess.STARTUPINFO()

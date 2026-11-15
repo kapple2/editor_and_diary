@@ -1,10 +1,11 @@
 """Make src/docs/KEDIT_MANUAL.html and KEDIT_MANUAL.pdf from KEDIT_MANUAL.md (the .md is the source; do not edit the others).
-HTML: pandoc. PDF: Chrome or Edge, headless, printing that HTML. Usage: python src/tools/mkmanual.py"""
+HTML: pandoc. PDF: Chrome or Edge, headless, printing that HTML. Usage: python src/tools/mkmanual.py [KEDIT|DIARY]   (default KEDIT; DIARY makes DIARY_MANUAL.html and .pdf)"""
 import subprocess, sys, tempfile
 from pathlib import Path
 
 DOCS = Path(__file__).resolve().parents[1] / "docs"
-MD, HTML, PDF = DOCS / "KEDIT_MANUAL.md", DOCS / "KEDIT_MANUAL.html", DOCS / "KEDIT_MANUAL.pdf"
+NAME = (sys.argv[1] if len(sys.argv) > 1 else "KEDIT").upper()
+MD, HTML, PDF = DOCS / f"{NAME}_MANUAL.md", DOCS / f"{NAME}_MANUAL.html", DOCS / f"{NAME}_MANUAL.pdf"
 BROWSERS = [Path(r"C:\Program Files\Google\Chrome\Application\chrome.exe"),
             Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")]
 

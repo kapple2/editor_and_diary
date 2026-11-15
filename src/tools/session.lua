@@ -48,6 +48,7 @@ local function isidle()
   return pc >= idlo and pc < idhi
 end
 if illo then idlo = 1 end
+local kring = false
 local kread, kst, seen, gate = 0, 0, false, 0     -- kst: 1 key posted, 2 program busy with it
 -- Q on / Q off: count, every frame, the BASIC line being run (a profile); written to <steps>.prof at Q off
 local prof = nil
@@ -57,6 +58,11 @@ emu.register_frame_done(function()
   if idlo and kst > 0 then
     local idle = isidle()
     if kst == 1 and not idle then kst = 2 end
+    -- a K key that the program took and finished inside one frame (it is idle again and the ring is empty): 1 frame
+    if kst == 1 and kring and idle and mem:read_u8(0x942B) == 0 then
+      local o = io.open(os.getenv("LTM_STEPS") .. ".idle", "a"); o:write(string.format("%d %d\n", kread, 1)); o:close()
+      kst = 0
+    end
     if kst == 2 and idle then
       local o = io.open(os.getenv("LTM_STEPS") .. ".idle", "a"); o:write(string.format("%d %d\n", kread, f - kread)); o:close()
       kst = 0
@@ -76,7 +82,7 @@ emu.register_frame_done(function()
   if #queue > 0 or state ~= "idle" then   -- also finish waiting for the last key of a T step
     local latch = mem:read_u8(0xC000)
     if state == "idle" then
-      lastkey = table.remove(queue, 1); m.natkeyboard:post(lastkey); state = "sent"; tmo = 0; kread = f; kst = 1
+      lastkey = table.remove(queue, 1); m.natkeyboard:post(lastkey); state = "sent"; tmo = 0; kread = f; kst = 1; kring = false
     elseif state == "sent" then
       tmo = tmo + 1
       if latch >= 128 then state = "latched"
@@ -101,9 +107,9 @@ emu.register_frame_done(function()
     for i = 1, #a do queue[#queue+1] = a:sub(i, i) end
   elseif c == "E" then queue[#queue+1] = string.char(13)
   elseif c == "W" then wait = tonumber(a)
-  elseif c == "S" then wait = 500; steps[si-1] = nil
-    -- snapshot after the settle wait: re-run this step as a marker
-    table.insert(steps, si, {"s", a})
+  elseif c == "S" then wait = 500
+    -- snapshot after the settle wait: this step becomes a marker, run again next (no hole in the array: # would be unreliable)
+    steps[si-1] = {"s", a}; si = si - 1
   elseif c == "s" then m.video:snapshot()
   elseif c == "P" then local o = io.open(os.getenv("LTM_STEPS") .. ".trace", "a"); o:write(string.format("%s f=%d line=%d latch=%02X\n", a, f, mem:read_u8(0x75) + 256 * mem:read_u8(0x76), mem:read_u8(0xC000))); o:close()
   elseif c == "Q" then
@@ -124,6 +130,6 @@ emu.register_frame_done(function()
   elseif c == "K" then   -- K <hex>: one key through K-HANGEUL's type-ahead ring, which KEDIT reads first. For the
     -- codes MAME's natural keyboard cannot type as themselves ($0A arrives as Return). Its frames are logged like a T key
     mem:write_u8(0x95AE + (mem:read_u8(0x942C) % 32), tonumber(a, 16) | 0x80); mem:write_u8(0x942B, 1)
-    kread = f; kst = 1; wait = 3
+    kread = f; kst = 1; kring = true; wait = 3
   elseif c == "X" then dump(); m:exit() end
 end)

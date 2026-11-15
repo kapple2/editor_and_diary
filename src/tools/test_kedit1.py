@@ -13,7 +13,7 @@ if __name__ == "__main__":
     d, p = s.run("k1", steps)
     print("frames per key:", s.frames("k1"))
     got = s.read_file(d, "TEST")
-    want = s.hi("10 PRINT 1\r\x0bGKSRMF\x01 123\r\r")
+    want = s.hi("10 PRINT 1\r\x0bGKSRMF\x01 123\r")  # (KEDIT 1.12: the empty line at the end is not saved)
     print("saved:", got)
     print("OK" if got == want else f"MISMATCH want {want!r}")
     s.sheet(p, s.ROOT / "work" / "sess" / "k1.png")

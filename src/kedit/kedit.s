@@ -1,4 +1,4 @@
-; KEDIT 1.6 - a Korean text editor on K-HANGEUL (Apple II Plus, DOS 3.3, 48K + language card)
+; KEDIT 1.12 - a Korean text editor on K-HANGEUL (Apple II Plus, DOS 3.3, 48K + language card)
 ;
 ; BRUN KEDIT. Text is kept exactly as a K-HANGEUL text file holds it (bit 7 set, Hangul runs Ctrl-K .. Ctrl-A,
 ; lines end with $8D), in a gap buffer from the end of this program up to HIMEM. The screen is drawn by printing to
@@ -66,6 +66,53 @@ T2      = $1C
 T3      = $1D
 T4      = $1E
 T5      = $1F
+nslot   = T4                    ; (used only inside getdiskarg: it calls nothing else)
+ndrv    = T5
+ndg     = T3
+nbd     = T1
+
+; The busiest variables are in the zero page too: bytes that are only work space of Applesoft (which is not running
+; while KEDIT runs, and sets them anew before it uses them) and that the driver, DOS and the monitor do not touch.
+; They are NOT cleared at the start: every one is set before it is read (start clears cut). pre must be the lowest
+; of pre, len, cln, nlines (numld).
+pre     = $53
+len     = $55
+ls      = $57
+cln     = $59
+nlines  = $5B
+ci      = $5D
+gape    = $61
+gaps    = $63
+ni      = $65
+topl    = $71
+numv    = $7F
+eoff    = $81
+drl     = $86
+topln   = $88
+lbn     = $8B
+drr     = $8C
+dirty   = $8D
+drln    = $91
+msgp    = $93
+lnoff   = $95
+fl      = $97
+cbn     = $99
+sbn     = $9A
+topr    = $A0
+drk     = $A1
+modf    = $A2
+ib      = $A5
+bufe    = $A9
+hascr   = $AB
+lssel   = $AC
+dinrun  = $EB
+cut     = $EC
+dmode   = $ED
+lsoff   = $EE
+lsrow   = $EF
+stfull  = $FA
+stlen   = $FB
+fln     = $CE
 
 ROWS    = 15
 STROW   = 15
@@ -100,8 +147,6 @@ start:  cld
         bne @zb
         tsx
         stx savesp
-        lda #0
-        sta iie
         lda $FBB3               ; $06 on a IIe, IIc, IIgs
         cmp #$06
         bne @p
@@ -109,17 +154,20 @@ start:  cld
 @p:     lda BUTN2
         and #$80
         sta shidle
-        lda #<bufmem            ; the text buffer runs from the end of the program to HIMEM
-        sta bufs
-        lda #>bufmem
-        sta bufs+1
-        lda #0
+.ifdef TEXTCAP                  ; (a test build: a text space of exactly TEXTCAP bytes, to compare the screens of two
+        lda #<(bufmem+TEXTCAP)  ; builds whose sizes differ: the status bar shows the free bytes. See kregress.py)
+        sta bufe
+        lda #>(bufmem+TEXTCAP)
+        sta bufe+1
+.else
+        lda #0                  ; the text buffer runs from the end of the program (bufmem) to HIMEM
         sta bufe
         lda HIMEM+1
         cmp #$95
         bcc @h
         lda #$94
 @h:     sta bufe+1
+.endif
         jsr findbuf
         jsr newbuf
         lda TAIDX               ; the ring's index is 0-31 in the driver this was written for
@@ -128,6 +176,7 @@ start:  cld
         inc taoff
 @ta:    lda #0                  ; keys typed before KEDIT started are dropped
         sta TACNT
+        sta cut
         lda #SCRW               ; (the other variables are zero: BSS was cleared)
         sta tw
         lda #$FF
@@ -154,9 +203,17 @@ start:  cld
         sta stlen
         lda #1
         sta stfull
+        lda DOSDRV              ; the files are on the DOS default disk until CHD / LS names another
+        sta ddrv
+        lda DOSSLOT
+        sta dslot
+        jsr loadkeys            ; the key map from the file KEYS; without it the classic keys and a message
         lda #<m_hello
         ldy #>m_hello
-        jsr setmsg
+        bcc @hm
+        lda #<m_nokeys
+        ldy #>m_nokeys
+@hm:    jsr setmsg
         lda #3
         sta dirty
 
@@ -273,7 +330,10 @@ dispatch:
         bne @t
         jmp backsp
 @t:     jmp typechar
-@ctl:   asl a
+@ctl:
+        tax                     ; user-definable keys: the key map gives the action (the ctltab number) of this key
+        lda keymap,x
+        asl a
         tax
         lda ctltab+1,x
         pha
@@ -285,6 +345,12 @@ ctltab: .addr bell-1, k_han-1, k_left-1, bell-1, k_delf-1, k_end-1, k_findn-1, k
         .addr k_lft-1, k_tab-1, k_down-1, k_up-1, k_redraw-1, k_ret-1, k_eol-1, k_bol-1   ; H I J K L M N O
         .addr k_paste-1, k_case-1, k_undo-1, backsp-1, k_top-1, k_right-1, bell-1, k_pgup-1 ; P Q R S T U V W
         .addr k_deol-1, k_delln-1, k_pgdn-1, bell-1, bell-1, bell-1, bell-1, bell-1      ; X Y Z [ \ ] ^ _
+
+; The key map: for each control code $00-$1F, the number of the action it runs (the number of ctltab's entry: a
+; key's own code when nothing is moved; 0 = no action, a bell). It is in the program file on purpose: the boot
+; EXEC file BLOADs a KEYS file over it (made by KEYCFG, the Applesoft key setup) before KEDITK starts.
+; Fixed: ESC ($1B, handled before), RETURN ($0D), Ctrl-A ($01) and Ctrl-H ($08, the left arrow).
+keymap: .byte 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31
 
 bell:   lda #$87
         jmp putc
@@ -358,10 +424,8 @@ k_eol:  lda ni
         sta ci
         rts
 
-k_down: jsr down
-        rts
-k_up:   jsr up
-        rts
+k_down  = down
+k_up    = up
 
 down:   inc keepgoal
         ldx ci
@@ -429,23 +493,25 @@ nextline:
 @c:     jmp curline
 
 prevline:
-        lda ls
-        sec
-        sbc #1
-        sta P3
-        lda ls+1
-        sbc #0
-        sta P3+1
-        jsr linestart
+        jsr prevls
         lda P3
         sta ls
         lda P3+1
         sta ls+1
-        lda cln
+        jsr deccln
+        jmp curline
+
+; cln - 1 / nlines - 1
+deccln: lda cln
         bne @c
         dec cln+1
 @c:     dec cln
-        jmp curline
+        rts
+decnl:  lda nlines
+        bne @d
+        dec nlines+1
+@d:     dec nlines
+        rts
 
 k_pgdn: lda #ROWS-1
         sta pgcnt
@@ -460,26 +526,18 @@ k_pgup: lda #ROWS-1
         bne @l
         rts
 
-k_top:  lda #0
-        sta ls
-        sta ls+1
-        sta ci
-        lda #1
-        sta cln
-        lda #0
-        sta cln+1
-        jmp curline
+k_top:  lda #1
+        ldx #0
+        beq gotolx
 
-k_end:  lda nlines
-        sta gtl
-        lda nlines+1
-        sta gtl+1
-        jsr gotoline
-        lda ni
-        sta ci
-        rts
+k_end:  lda #$FF                ; (a line number past the last one: gotoline stops at the last line)
+        tax
+        jsr gotolx
+        jmp k_eol
 
-; go to line gtl (1-based, clamped)
+; go to line gtl (gotolx: A/X) (1-based, clamped)
+gotolx: sta gtl
+        stx gtl+1
 gotoline:
         lda #0
         sta ls
@@ -503,6 +561,21 @@ gotoline:
 ; ==========================================================================
 ; editing
 ; ==========================================================================
+; Shift + R E Q T W O P (the tense consonants and ㅒ ㅖ) on a Hangul key: T0 (uppercase) -> the shifted key.
+; Used by the text (typechar) and by the command line (command), so both type the same letters.
+shmap:  lda shift
+        beq @x
+        ldx #6
+@s:     lda T0
+        cmp shk,x
+        beq @sf
+        dex
+        bpl @s
+        rts
+@sf:    lda shv,x
+        sta T0
+@x:     rts
+
 typechar:                       ; A = key, 7 bits, printable
         sta T0
         lda han
@@ -510,17 +583,7 @@ typechar:                       ; A = key, 7 bits, printable
         lda T0                  ; Hangul mode: letters are keys (upper case)
         jsr upcase
         sta T0
-        lda shift
-        beq @k
-        ldx #6                  ; Shift + R E Q T W O P: the tense consonants and ㅒ ㅖ
-@s:     lda T0
-        cmp shk,x
-        beq @sf
-        dex
-        bpl @s
-        bmi @k
-@sf:    lda shv,x
-        sta T0
+        jsr shmap
 @k:     lda T0
         ora #$80
         jsr kcls
@@ -562,44 +625,17 @@ inshan: sta ib+1
         cmp #HA
         bne @mid
         dey                     ; right after a run: type into it, before its Ctrl-A
-        lda ib+1
-        sta ib
-        lda #1
-        jsr insat
-        bcs @f
-        ldx ci
-        lda u,x
-        clc
-        adc #1
-        jmp ed_line
+        jmp insone
 @mid:   lda uf,x
         and #F_NEEDK
-        beq @new
-        lda ib+1                ; inside a run, between syllables
-        sta ib
-        lda #1
-        jsr insat
-        bcs @f
-        ldx ci
-        lda u,x
-        clc
-        adc #1
-        jmp ed_line
+        bne insone              ; inside a run, between syllables
 @new:   lda #HK                 ; a new run: Ctrl-K key Ctrl-A
         sta ib
         lda #HA
         sta ib+2
-        ldx ci
-        ldy u,x
         lda #3
-        jsr insat
-        bcs @f
-        ldx ci
-        lda u,x
-        clc
-        adc #3
-        jmp ed_line
-@f:     rts
+        tax
+        bne insgo
 
 ; insert a character that is not a Hangul key (A, bit 7 set)
 inschar:
@@ -609,34 +645,33 @@ inschar:
         ldy u,x
         lda uf,x
         and #F_NEEDK
-        beq @plain
+        beq insone
         lda #HA                 ; inside a run: end it, the character, start it again
         sta ib
         lda #HK
         sta ib+2
         lda #3
-        jsr insat
-        bcs @f
-        ldx ci
-        lda u,x
-        clc
-        adc #2
-        jmp ed_line
-@plain: lda ib+1
+        ldx #2
+        bne insgo
+insone: lda ib+1                ; the one byte, at line index Y
         sta ib
         lda #1
+        tax
+; insert A bytes from ib at line index Y; the cursor then goes X bytes on from the start of its unit
+insgo:  stx etgt
         jsr insat
         bcs @f
         ldx ci
         lda u,x
         clc
-        adc #1
+        adc etgt
         jmp ed_line
 @f:     rts
 
 k_ret:  jsr ed_begin
         ldx ci
         ldy u,x
+        sty T5
         lda uf,x
         and #F_NEEDK
         beq @plain
@@ -647,29 +682,23 @@ k_ret:  jsr ed_begin
         lda #HK
         sta ib+2
         lda #3
-        sty T5
         jsr insat
         bcs @f
-        lda T5
-        clc
-        adc #2
-        jmp @nl
+        lda #2
+        bne @nl
 @plain: lda #CR
         sta ib
-        sty T5
         lda #1
         jsr insat
         bcs @f
-        lda T5
-        clc
-        adc #1
-@nl:    clc                     ; the new line starts at ls + A
+        lda #1
+@nl:    clc                     ; the new line starts at ls + the index + A
+        adc T5
         adc ls
         sta ls
-        lda ls+1
-        adc #0
-        sta ls+1
-        inc cln
+        bcc @c0
+        inc ls+1
+@c0:    inc cln
         bne @c
         inc cln+1
 @c:     inc nlines
@@ -686,20 +715,11 @@ backsp: jsr ed_begin
         ora ls+1
         bne @j
         jmp bell
-@j:     lda ls
-        sec
-        sbc #1
-        sta P3
-        lda ls+1
-        sbc #0
-        sta P3+1
-        jsr linestart           ; P3 = start of the previous line
-        sec                     ; previous length = ls - 1 - P3
+@j:     jsr prevls              ; P3 = start of the previous line
+        clc                     ; previous length = ls - 1 - P3
         lda ls
         sbc P3
         sta T5
-        dec T5
-        lda T5
         clc
         adc lbn
         bcs @long
@@ -720,14 +740,8 @@ backsp: jsr ed_begin
         sta ls
         lda P3+1
         sta ls+1
-        lda cln
-        bne @c
-        dec cln+1
-@c:     dec cln
-        lda nlines
-        bne @d
-        dec nlines+1
-@d:     dec nlines
+        jsr deccln
+        jsr decnl
         lda T5
         jmp ed_lines
 @in:    lda compp
@@ -805,10 +819,7 @@ k_delf: jsr ed_begin
 @ok:    ldy lbn
         lda #1
         jsr delat
-        lda nlines
-        bne @d
-        dec nlines+1
-@d:     dec nlines
+        jsr decnl
         ldx ci
         lda u,x
         jmp ed_lines
@@ -888,10 +899,7 @@ k_delln:
         clc
         adc #1
         jsr delat
-        lda nlines
-        bne @d
-        dec nlines+1
-@d:     dec nlines
+        jsr decnl
         lda #0
         jmp ed_lines
 @last:  lda lbn
@@ -1156,19 +1164,24 @@ ed_begin:
         sta orows
         lda lbn
         sta olen
-        ldy #0
+        lda ls
+        sta P3
+        lda ls+1
+        sta P3+1
+; The screen row that shows the start of the line at offset P3: the redraw starts there (drr, drk, drln, drl).
+; Carry set, and edfull = 3, if that line is not on the screen: everything is redrawn
+rowof:  ldy #0
 @l:     lda sv,y
         beq @n
         lda sl_lo,y
-        cmp ls
+        cmp P3
         bne @n
         lda sl_hi,y
-        cmp ls+1
+        cmp P3+1
         beq @f
 @n:     iny
         cpy #ROWS
         bcc @l
-        ldy #0                  ; not found: redraw everything
         lda #3
         sta edfull
         rts
@@ -1181,26 +1194,17 @@ ed_begin:
         sta drln
         lda sln_hi,y
         sta drln+1
-        lda ls
+        lda P3
         sta drl
-        lda ls+1
+        lda P3+1
         sta drl+1
+        clc
         rts
 
 ; the redraw starts at the previous line (joining lines at the start of a line); P3 = previous line start
 joinrow:
-        ldy #0
-@l:     lda sv,y
-        beq @n
-        lda sl_lo,y
-        cmp P3
-        bne @n
-        lda sl_hi,y
-        cmp P3+1
-        beq @f
-@n:     iny
-        cpy #ROWS
-        bcc @l
+        jsr rowof
+        bcc @x
         lda P3                  ; the previous line is above the screen: it becomes the top line
         sta topl
         lda P3+1
@@ -1214,36 +1218,19 @@ joinrow:
         lda cln+1
         sbc #0
         sta topln+1
-        lda #3
-        sta edfull
-        rts
-@f:     sty drr
-        lda sr,y
-        sta drk
-        lda sln_lo,y
-        sta drln
-        lda sln_hi,y
-        sta drln+1
-        lda P3
-        sta drl
-        lda P3+1
-        sta drl+1
-        lda #0
-        sta edfull
-        rts
+@x:     rts
 
 ; after an edit in one line: A = index of the new cursor position in that line
 ed_line:
-        sta etgt
-        jsr curline
-        lda etgt
-        jsr snap
-        lda olen                ; shift the later rows' line starts by the size change
-        sta T0
-        lda lbn
+        jsr edpre
+        lda lbn                 ; shift the later rows' line starts by the size change (T0/T1, signed)
         sec
-        sbc T0
-        sta T0                  ; signed change
+        sbc olen
+        sta T0
+        ldx #0
+        bcs @p
+        dex
+@p:     stx T1
         ldy drr
         iny
 @s:     cpy #ROWS
@@ -1255,52 +1242,34 @@ ed_line:
         cmp ls
 @c:     beq @nx
         bcc @nx
-        lda T0
-        bmi @neg
         clc
+        lda T0
         adc sl_lo,y
         sta sl_lo,y
         lda sl_hi,y
-        adc #0
+        adc T1
         sta sl_hi,y
-        jmp @nn
-@neg:   clc
-        adc sl_lo,y
-        sta sl_lo,y
-        lda sl_hi,y
-        adc #$FF
-        sta sl_hi,y
-@nn:    lda snext_hi,y          ; snext moves too (it is the start of a later line)
+        lda snext_hi,y          ; snext moves too (it is the start of a later line)
         and snext_lo,y
         cmp #$FF
         beq @nx
-        lda T0
-        bmi @neg2
         clc
+        lda T0
         adc snext_lo,y
         sta snext_lo,y
         lda snext_hi,y
-        adc #0
-        sta snext_hi,y
-        jmp @nx
-@neg2:  clc
-        adc snext_lo,y
-        sta snext_lo,y
-        lda snext_hi,y
-        adc #$FF
+        adc T1
         sta snext_hi,y
 @nx:    iny
-        jmp @s
-@sd:    ldy drr                 ; the cursor line's own last row: snext changes too
-        lda edfull
-        bne @full
+        bne @s
+@sd:    lda edfull
+        bne edfu
         ldx ni
         lda ur,x
         cmp orows
-        bne @more
+        bne edmore
         lda #1
         sta dmode
-        lda #1
         sta dirty
         ldx efrom               ; start at the row of the first unit that can have changed
         cpx ni
@@ -1321,32 +1290,26 @@ ed_line:
         jmp toprows
 @e2:    lda #0
         sta dfrom
-        jmp toprows
-@more:  lda #2
-        sta dmode
-        sta dirty
-        jmp toprows
-@full:  lda #3
-        sta dirty
-        jmp toprows
+        beq toprows
+
+; load the cursor line again and put the cursor at line index A
+edpre:  sta etgt
+        jsr curline
+        lda etgt
+        jmp snap
 
 ; after an edit that changed the number of lines: A = index of the new cursor position in line ls
 ed_lines:
-        sta etgt
-        lda #0                  ; the lines moved: nothing to put back
-        sta ulv
-        jsr curline
-        lda etgt
-        jsr snap
+        ldx #0                  ; the lines moved: nothing to put back
+        stx ulv
+        jsr edpre
         lda edfull
-        bne @full
-        lda #2
+        bne edfu
+edmore: lda #2                  ; the rows change: redraw to the bottom
         sta dmode
+        .byte $2C
+edfu:   lda #3                  ; redraw everything
         sta dirty
-        jmp toprows
-@full:  lda #3
-        sta dirty
-        jmp toprows
 
 ; if the top row is inside the cursor line and that line got shorter, keep the top row inside it
 toprows:
@@ -1382,9 +1345,9 @@ snap:   sta T0
 ; ==========================================================================
 ; gap buffer
 ; ==========================================================================
-newbuf: lda bufs
+newbuf: lda #<bufmem
         sta gaps
-        lda bufs+1
+        lda #>bufmem
         sta gaps+1
         lda bufe
         sta gape
@@ -1602,10 +1565,10 @@ off2ptr:
         bcs @after
         clc
         lda P3
-        adc bufs
+        adc #<bufmem
         sta P1
         lda P3+1
-        adc bufs+1
+        adc #>bufmem
         sta P1+1
         rts
 @after: sec
@@ -1624,6 +1587,14 @@ off2ptr:
         sta P1+1
         rts
 
+; P3 = the start of the line before the cursor line
+prevls: lda ls
+        sec
+        sbc #1
+        sta P3
+        lda ls+1
+        sbc #0
+        sta P3+1
 ; start of the line that contains offset P3 -> P3
 linestart:
 @l:     lda P3
@@ -1651,7 +1622,61 @@ loadline:
         sta P3+1
         jsr off2ptr
         ldx #0
-@l:     lda P1
+@seg:   sec                     ; T1 = the bytes from P1 to the gap or to the end of the text (at most 255):
+        lda gaps                ; they are copied without looking for the gap at every byte
+        sbc P1
+        sta T1
+        lda gaps+1
+        sbc P1+1
+        bcc @aft                ; (P1 is after the gap)
+        bne @big
+        ldy T1
+        bne @go
+        lda gape                ; at the gap: over it
+        sta P1
+        lda gape+1
+        sta P1+1
+        bne @seg
+@aft:   sec
+        lda bufe
+        sbc P1
+        sta T1
+        lda bufe+1
+        sbc P1+1
+        bne @big
+        ldy T1
+        bne @go
+        tya                     ; the end of the text: no CR
+        beq @d
+@big:   lda #255
+        sta T1
+@go:    ldy #0
+@l:     lda (P1),y
+        cmp #CR
+        beq @cr
+        cpx #254
+        bcs @s
+        sta lb,x
+        inx
+@s:     iny
+        cpy T1
+        bne @l
+        tya
+        clc
+        adc P1
+        sta P1
+        bcc @seg
+        inc P1+1
+        bne @seg
+@cr:    lda #1
+@d:     sta hascr
+        stx lbn
+        lda #CR
+        sta lb,x
+        rts
+
+; the text byte at P1, which then moves on (it skips the gap). Carry set: the end of the text. Keeps X
+tbyte:  lda P1
         cmp gaps
         bne @a
         lda P1+1
@@ -1666,27 +1691,14 @@ loadline:
         bne @b
         lda P1+1
         cmp bufe+1
-        beq @eof
+        beq @x                  ; (carry set)
 @b:     ldy #0
         lda (P1),y
-        cmp #CR
-        beq @cr
-        cpx #254
-        bcs @s
-        sta lb,x
-        inx
-@s:     inc P1
-        bne @l
+        inc P1
+        bne @c
         inc P1+1
-        jmp @l
-@cr:    lda #1
-        bne @d
-@eof:   lda #0
-@d:     sta hascr
-        stx lbn
-        lda #CR
-        sta lb,x
-        rts
+@c:     clc
+@x:     rts
 
 ; load and lay out the cursor line
 curline:
@@ -1972,6 +1984,15 @@ mkrows: lda #<$1980
         bcc @l
         rts
 
+; print the digits of numbuf
+putnum: ldx #0
+@d:     lda numbuf,x
+        jsr putc
+        inx
+        cpx numlen
+        bcc @d
+        rts
+
 spaces: tax                     ; print A spaces (A may be 0)
         beq @x
 @l:     lda #SPC
@@ -1985,10 +2006,8 @@ calcnumw:
         lda #0
         ldx nums
         beq @set
-        lda nlines
-        sta numv
-        lda nlines+1
-        sta numv+1
+        ldx #nlines-pre
+        jsr numld
         jsr utoa
         lda numlen
         clc
@@ -2036,17 +2055,7 @@ refresh:
         jsr findrow
         bcs @top
         jmp @ok
-@top:   lda ls                  ; otherwise the cursor row becomes the top row and the screen is redrawn
-        sta topl
-        lda ls+1
-        sta topl+1
-        ldx ci
-        lda ur,x
-        sta topr
-        lda cln
-        sta topln
-        lda cln+1
-        sta topln+1
+@top:   jsr topcur              ; otherwise the cursor row becomes the top row and the screen is redrawn
         jmp @full
 @below: jsr isnext
         bcs @far
@@ -2058,16 +2067,7 @@ refresh:
 @full:  lda #0
         sta cut
         sta drr
-        lda topl
-        sta drl
-        lda topl+1
-        sta drl+1
-        lda topr
-        sta drk
-        lda topln
-        sta drln
-        lda topln+1
-        sta drln+1
+        jsr drtop
         lda #2
         sta dmode
         inc fulld               ; a key that arrives stops this redraw: the user is paging on
@@ -2085,17 +2085,10 @@ refresh:
         lda tries
         cmp #2
         bcs @ok
-        lda ls
-        sta topl
-        lda ls+1
-        sta topl+1
+        jsr topcur
         lda #0
         sta topr
-        lda cln
-        sta topln
-        lda cln+1
-        sta topln+1
-        jmp @full
+        beq @full
 @ok:    lda #0
         sta dirty
 @goal:  lda keepgoal
@@ -2104,6 +2097,32 @@ refresh:
         lda uc,x
         sta goal
 @g:     rts
+
+; the top row of the screen = the cursor's row
+topcur: lda ls
+        sta topl
+        lda ls+1
+        sta topl+1
+        ldx ci
+        lda ur,x
+        sta topr
+        lda cln
+        sta topln
+        lda cln+1
+        sta topln+1
+        rts
+; the redraw starts with the top row
+drtop:  lda topl
+        sta drl
+        lda topl+1
+        sta drl+1
+        lda topr
+        sta drk
+        lda topln
+        sta drln
+        lda topln+1
+        sta drln+1
+        rts
 
 ; the screen row of the cursor -> crow, carry clear if it is on the screen
 findrow:
@@ -2244,22 +2263,8 @@ scroll2:
         stx rowlen+ROWS
         sty rowlen
         sty drr
-        lda ls
-        sta topl
-        sta drl
-        lda ls+1
-        sta topl+1
-        sta drl+1
-        ldx ci
-        lda ur,x
-        sta topr
-        sta drk
-        lda cln
-        sta topln
-        sta drln
-        lda cln+1
-        sta topln+1
-        sta drln+1
+        jsr topcur
+        jsr drtop
         lda #3                  ; one row only: the rows below it are already on the screen
         sta dmode
         jmp drawfrom
@@ -2318,17 +2323,7 @@ scroll1:
 
 ; choose the top so that the cursor row is the bottom row
 setbottom:
-        lda ls
-        sta topl
-        lda ls+1
-        sta topl+1
-        ldx ci
-        lda ur,x
-        sta topr
-        lda cln
-        sta topln
-        lda cln+1
-        sta topln+1
+        jsr topcur
         lda #ROWS-1
         sta sbcnt
 @l:     lda sbcnt
@@ -2528,12 +2523,7 @@ drawrow:
         sec
         sbc #1
         jsr spaces
-        ldx #0
-@d:     lda numbuf,x
-        jsr putc
-        inx
-        cpx numlen
-        bcc @d
+        jsr putnum
         lda #SPC
         jsr putc
         jmp @t1
@@ -2663,6 +2653,14 @@ sbch:   stx sbx                 ; keeps X
         inc sbn
         ldx sbx
         rts
+; numv = the 16-bit variable at pre + X (pre, len, eoff, ls, cln, nlines are one block)
+numld:  lda pre,x
+        sta numv
+        lda pre+1,x
+        sta numv+1
+        rts
+; append that variable (sbnx), or numv (sbnum), in decimal to sb
+sbnx:   jsr numld
 sbnum:  jsr utoa
 sbdig:  ldx #0
 @l:     lda numbuf,x
@@ -2694,8 +2692,6 @@ status: lda stbg                ; the row is not an inverse bar (start, redraw, 
         lda #<m_han
         ldy #>m_han
 @e:     jsr sbstr
-        lda #SPC
-        jsr sbch
         ldy #0
 @cs:    lda abc,y
         ldx lower
@@ -2705,32 +2701,18 @@ status: lda stbg                ; the row is not an inverse bar (start, redraw, 
         iny
         cpy #3
         bcc @cs
-        lda #SPC
-        jsr sbch
         lda #<m_line
         ldy #>m_line
         jsr sbstr
-        lda #SPC
-        jsr sbch
-        lda cln
-        sta numv
-        lda cln+1
-        sta numv+1
-        jsr sbnum
+        ldx #cln-pre
+        jsr sbnx
         lda #'/'|$80
         jsr sbch
-        lda nlines
-        sta numv
-        lda nlines+1
-        sta numv+1
-        jsr sbnum
-        lda #SPC
-        jsr sbch
+        ldx #nlines-pre
+        jsr sbnx
         lda #<m_col
         ldy #>m_col
         jsr sbstr
-        lda #SPC
-        jsr sbch
         ldx ci
         lda uc,x
         clc
@@ -2739,13 +2721,9 @@ status: lda stbg                ; the row is not an inverse bar (start, redraw, 
         lda #0
         sta numv+1
         jsr sbnum
-        lda #SPC
-        jsr sbch
         lda #<m_free            ; the bytes that can still be typed
         ldy #>m_free
         jsr sbstr
-        lda #SPC
-        jsr sbch
         jsr freenum
         jsr sbnum
         lda #SPC
@@ -3106,6 +3084,9 @@ command:
         beq @plain
         lda T0
         jsr upcase
+        sta T0
+        jsr shmap               ; (Shift + R = ㄲ, as in the text)
+        lda T0
         ora #$80
         sta T0
         jsr kcls
@@ -3418,10 +3399,6 @@ cmd_n:  jsr askdiscard
         sta dirty
 @x:     rts
 
-cmd_copy:
-        jmp k_copy
-cmd_paste:
-        jmp k_paste
 
 cmd_nu: lda nums
         eor #1
@@ -3432,10 +3409,8 @@ cmd_nu: lda nums
 
 cmd_g:  jsr argnum
         lda T3
-        sta gtl
-        lda T4
-        sta gtl+1
-        jmp gotoline
+        ldx T4
+        jmp gotolx
 
 argnum: lda #0                  ; decimal argument -> T3/T4
         sta T3
@@ -3478,12 +3453,13 @@ argnum: lda #0                  ; decimal argument -> T3/T4
         jmp @l
 @go:    rts
 
-cmd_h:  ldx #0
+cmd_h:  lda #<helptxt
+        sta P3
+        lda #>helptxt
+        sta P3+1
+        ldx #0
 @l:     stx T5
-        lda helplo,x
-        sta SEGP
-        lda helphi,x
-        sta SEGP+1
+        jsr helpx
         jsr rowputz
         ldx T5
         inx
@@ -3491,8 +3467,55 @@ cmd_h:  ldx #0
         bcc @l
         jsr rowclr
         jsr pause
+        pha
         lda #3
         sta dirty
+        pla
+        cmp #$1B                ; ESC at the help: the command line; any other key goes back
+        bne @x
+        jmp command
+@x:     rts
+
+; The help line at P3 is copied to cb, and P3 moves on to the next line. A byte below $80 in it is a slot: an action
+; number, replaced by "^" and the first key that runs that action ("^-" if none). SEGP then points to cb.
+helpx:  ldy #0
+        ldx #0
+@l:     lda (P3),y
+        beq @e
+        iny
+        cmp #$80
+        bcs @c
+        stx T4
+        ldx #0
+@f:     cmp keymap,x
+        beq @g
+        inx
+        cpx #32
+        bcc @f
+        ldx #$ED                ; none: $ED + $C0 = '-'
+@g:     txa
+        clc
+        adc #$C0
+        pha
+        ldx T4
+        lda #$DE                ; '^'
+        sta cb,x
+        inx
+        pla
+@c:     sta cb,x
+        inx
+        bne @l
+@e:     sta cb,x
+        tya                     ; the next line starts after the 0
+        sec
+        adc P3
+        sta P3
+        bcc @n
+        inc P3+1
+@n:     lda #<cb
+        sta SEGP
+        lda #>cb
+        sta SEGP+1
         rts
 
 ; print the zero-terminated string at SEGP as text row T5
@@ -3567,11 +3590,8 @@ freenum:
 ; ---- info: size of the text and free memory ----
 cmd_i:  lda #0
         sta sbn
-        lda len
-        sta numv
-        lda len+1
-        sta numv+1
-        jsr sbnum
+        ldx #len-pre
+        jsr sbnx
         lda #<m_bytes
         ldy #>m_bytes
         jsr sbstr
@@ -3583,8 +3603,117 @@ sbmsg:  lda #0                  ; show sb as the message
         ldy #>sb
         jmp setmsg
 
+; the disk named in the command's argument (cb from argp): DOS 3.3's "S6,D2", "D2", "S5", or digits: "2" = drive 2,
+; "62" = slot 6 drive 2. It becomes the current disk (ddrv/dslot; what is not named stays). Carry set: not understood.
+; argn = 0: no disk named
+getdiskarg:
+        lda #0
+        sta nslot
+        sta ndrv
+        sta ndg
+        sta T0                  ; 0 = no letter yet, 1 = after S, 2 = after D
+        ldx argp
+@l:     cpx cbn
+        bcs @e
+        lda cb,x
+        inx
+        and #$7F
+        cmp #'a'
+        bcc @u
+        cmp #'z'+1
+        bcs @u
+        and #$DF
+@u:     ldy #1
+        cmp #'S'
+        beq @m
+        iny
+        cmp #'D'
+        bne @d
+@m:     sty T0
+        bne @l
+@d:     sec
+        sbc #'0'
+        cmp #10
+        bcs @l                  ; (anything else is ignored: commas, spaces)
+        ldy T0
+        beq @bare
+        sta nslot-1,y           ; S6 -> nslot, D2 -> ndrv
+        lda #0
+        sta T0
+        beq @l
+@bare:  ldy ndg
+        cpy #2
+        bcs @bad
+        sta nbd,y
+        inc ndg
+        bne @l
+@e:     lda ndg
+        beq @chk
+        cmp #2
+        beq @two
+        lda nbd
+        sta ndrv
+        bne @chk
+@two:   lda nbd
+        sta nslot
+        lda nbd+1
+        sta ndrv
+@chk:   lda nslot
+        beq @ds
+        cmp #8
+        bcs @bad
+@ds:    lda ndrv
+        beq @ok
+        cmp #3
+        bcs @bad
+@ok:    lda argn                ; (nothing named: fine)
+        beq @good
+        lda nslot
+        ora ndrv
+        beq @bad
+@good:  lda nslot
+        beq @s2
+        sta dslot
+@s2:    lda ndrv
+        beq @d2
+        sta ddrv
+@d2:    clc
+        rts
+@bad:   sec
+        rts
+
+; CHD S6,D2 (디스크): the disk for E, R, W, LS from now on
+cmd_chd:
+        jsr getdiskarg
+        bcs baddrv
+        lda argn
+        beq baddrv
+        lda #0
+        sta sbn
+        lda #<m_disk0           ; "디스크 [S6,D2]"
+        ldy #>m_disk0
+        jsr sbstr
+        lda dslot
+        ora #$B0
+        jsr sbch
+        lda #<m_disk1
+        ldy #>m_disk1
+        jsr sbstr
+        lda ddrv
+        ora #$B0
+        jsr sbch
+        lda #']'|$80
+        jsr sbch
+        jmp sbmsg
+baddrv: lda #<m_baddrv
+        ldy #>m_baddrv
+        jmp setmsg
+
 ; ---- catalog: the files of the disk, read with RWTS (VTOC, then the catalog sectors) ----
-cmd_ls: lda #0
+cmd_ls: jsr getdiskarg          ; LS [S6,D2]: the catalog of that disk (and it is the current disk from now on, as in DOS)
+        bcc @go
+        jmp baddrv
+@go:    lda #0
         sta lsrow
         lda #17
         ldy #0
@@ -3659,6 +3788,11 @@ lspick: sta lsmore
         beq @stop
         cmp #$0D
         beq @open
+        cmp #$20
+        bcs @nm
+        tax
+        lda keymap,x            ; the keys that move the cursor up and down also choose
+@nm:
         cmp #$0B
         beq @up
         cmp #$0A
@@ -3894,7 +4028,7 @@ rdsec:  sta T1
         jsr LOCRPL
         sty P1
         sta P1+1
-        lda DOSSLOT
+        lda dslot
         asl a
         asl a
         asl a
@@ -3902,7 +4036,7 @@ rdsec:  sta T1
         ldy #1
         sta (P1),y
         iny
-        lda DOSDRV
+        lda ddrv
         sta (P1),y
         iny
         lda #0                  ; any volume
@@ -4131,33 +4265,26 @@ fmset:  pha
         jsr LOCFPL
         sty P2
         sta P2+1
-        ldy #0
-        pla
-        sta (P2),y
-        iny
+        ldy #11
         lda #0
 @z:     sta (P2),y              ; clear bytes 1-11
-        iny
-        cpy #12
-        bcc @z
-        ldy #0
-        lda (P2),y
+        dey
+        bne @z
+        pla
+        sta (P2),y
         cmp #1
         bne @nr
         ldy #2                  ; OPEN: record length 1, as DOS's own OPEN for a sequential file
-        lda #1
         sta (P2),y
 @nr:    cmp #2                  ; CLOSE, READ, WRITE: bytes 2-9 are record, offset, length, address
-        beq @buf
-        cmp #3
-        beq @buf
-        cmp #4
-        beq @buf
-        ldy #5
-        lda DOSDRV
+        bcc @nm
+        cmp #5
+        bcc @buf
+@nm:    ldy #5
+        lda ddrv                ; the current disk (the DOS default until CHD or LS names another)
         sta (P2),y
         iny
-        lda DOSSLOT
+        lda dslot
         sta (P2),y
         ldy #8
         lda fnp
@@ -4165,14 +4292,12 @@ fmset:  pha
         iny
         lda fnp+1
         sta (P2),y
-@buf:   ldy #$0C                ; work area, T/S list buffer, data buffer
-        ldx #0
-@b1:    lda fmbuf,x
+@buf:   ldy #$11                ; work area, T/S list buffer, data buffer: bytes $0C-$11
+@b1:    lda fmbuf-$0C,y
         sta (P2),y
-        iny
-        inx
-        cpx #6
-        bcc @b1
+        dey
+        cpy #$0C
+        bcs @b1
         rts
 
 ; the file manager's buffers: a free DOS file buffer (one whose name field is empty; the last one if all are taken,
@@ -4215,6 +4340,50 @@ fmcall: jsr FMGR
         clc
 @e:     rts
 
+; Read the key map from the file KEYS (written by KEYCFG with BSAVE: 4 header bytes, then the 32 map bytes) into
+; keymap. Carry set: no usable file (missing, not 32 bytes, or an action number above 31): the map is left as it is.
+loadkeys:
+        lda #<keysname
+        ldy #>keysname
+        jsr setname
+        lda #1                  ; OPEN (it is a binary file: its type is not looked at)
+        jsr fmset
+        ldx #1
+        jsr fmcall
+        bcs @no
+        lda #<cw                ; the 36 bytes are read into cw (64 bytes, not in use yet)
+        sta P3
+        lda #>cw
+        sta P3+1
+        lda #36
+        sta T1
+        lda #0
+        sta T2
+        jsr fmread              ; (closes the file; on an error it sets a message, which the caller replaces)
+        bcs @no
+        lda cw+2                ; the header's length field
+        cmp #32
+        bne @no
+        ldx #31
+@c:     lda cw+4,x
+        cmp #32
+        bcs @no
+        dex
+        bpl @c
+        ldx #31
+@m:     lda cw+4,x
+        sta keymap,x
+        dex
+        bpl @m
+        clc
+        rts
+@no:    sec
+        rts
+
+keysname:
+        .byte $CB,$C5,$D9,$D3   ; KEYS, then spaces to 30 bytes
+        .res 26,$A0
+
 fmclose:
         lda #2
         jsr fmset
@@ -4244,32 +4413,12 @@ fmrange:
         jmp fmcall
 
 ; DOS error A -> message
-dosmsg: cmp #4
-        bne @a
-        lda #<m_wprot
-        ldy #>m_wprot
-        jmp setmsg
-@a:     cmp #6
-        bne @b
-        lda #<m_nofile
-        ldy #>m_nofile
-        jmp setmsg
-@b:     cmp #9
-        bne @c
-        lda #<m_dfull
-        ldy #>m_dfull
-        jmp setmsg
-@c:     cmp #10
-        bne @d
-        lda #<m_locked
-        ldy #>m_locked
-        jmp setmsg
-@d:     cmp #8
-        bne @e
-        lda #<m_ioerr
-        ldy #>m_ioerr
-        jmp setmsg
-@e:     sta numv                ; "disk error N"
+dosmsg: ldx #4
+@l:     cmp dmc,x
+        beq @f
+        dex
+        bpl @l
+        sta numv                ; "disk error N"
         lda #0
         sta numv+1
         sta sbn
@@ -4278,6 +4427,12 @@ dosmsg: cmp #4
         jsr sbstr
         jsr sbnum
         jmp sbmsg
+@f:     lda dml,x
+        ldy dmh,x
+        jmp setmsg
+dmc:    .byte 4, 6, 9, 10, 8
+dml:    .byte <m_wprot, <m_nofile, <m_dfull, <m_locked, <m_ioerr
+dmh:    .byte >m_wprot, >m_nofile, >m_dfull, >m_locked, >m_ioerr
 
 ; the name the next OPEN, DELETE or RENAME works on: A/Y, or fname
 realname:
@@ -4317,7 +4472,15 @@ save:   lda fnlen
         jsr setmsg
         sec
         rts
-@s:     lda #<tmpname
+@s:     jsr gapend              ; no text (only spaces and empty lines): nothing is saved
+        jsr wrlast
+        bcc @s1
+        lda #<m_emptysave
+        ldy #>m_emptysave
+        jsr setmsg
+        sec
+        rts
+@s1:    lda #<tmpname
         ldy #>tmpname
         jsr writeto
         bcs @tf
@@ -4363,6 +4526,181 @@ tmpname:
         .res 21, $A0
 
 ; write the text to the file named A/Y (an old file of that name is deleted first). Carry set on error (A = code)
+; ---- the trimmed file (save) ----
+; The text is written as lines: each line without the spaces at its end, each with its CR. The empty lines after the
+; last line with text are not written. The gap must be at the end of the text (gapend). The text is not changed.
+; wend = the end of the text; wlast = the end of the last character that is not a space or a CR (= bufmem: none).
+gapend: lda len                 ; the gap goes to the end of the text
+        sta eoff
+        lda len+1
+        sta eoff+1
+        jsr gapto
+        lda #<bufmem
+        clc
+        adc len
+        sta wend
+        lda #>bufmem
+        adc len+1
+        sta wend+1
+        rts
+
+; wlast from the text: carry set if there is no character to write (the text is blank)
+wrlast: lda #<bufmem
+        sta wp
+        sta wlast
+        lda #>bufmem
+        sta wp+1
+        sta wlast+1
+@l:     jsr wpend
+        bcs @x
+        jsr wpget
+        cmp #SPC
+        beq @n
+        cmp #CR
+        beq @n
+        lda wp
+        clc
+        adc #1
+        sta wlast
+        lda wp+1
+        adc #0
+        sta wlast+1
+@n:     jsr wpinc
+        jmp @l
+@x:     lda wlast               ; (carry: clear if there is text)
+        cmp #<bufmem
+        bne @t
+        lda wlast+1
+        cmp #>bufmem
+        beq @none
+@t:     clc
+        rts
+@none:  sec
+        rts
+
+; the lines to the file (carry set: a DOS error, A = its code). T5 = the mode of the next write (4 at the first)
+wrtrim: lda #4
+        sta T5
+        lda #<bufmem
+        sta wls
+        lda #>bufmem
+        sta wls+1
+@l2:    lda wls+1               ; the line starts before wlast: otherwise the rest is blank
+        cmp wlast+1
+        bcc @go
+        bne @fin
+        lda wls
+        cmp wlast
+        bcc @go
+@fin:   clc
+        rts
+@go:    lda wls
+        sta wp
+        sta wce
+        lda wls+1
+        sta wp+1
+        sta wce+1
+@sc:    lda wp+1                ; wp >= wlast: the line ends here
+        cmp wlast+1
+        bcc @in
+        bne @ln
+        lda wp
+        cmp wlast
+        bcs @ln
+@in:    jsr wpget
+        cmp #CR
+        beq @ln
+        cmp #SPC
+        beq @sk
+        lda wp                  ; a character: the line's text ends after it
+        clc
+        adc #1
+        sta wce
+        lda wp+1
+        adc #0
+        sta wce+1
+@sk:    jsr wpinc
+        jmp @sc
+@ln:    lda wce+1               ; the text of the line: wls to wce (none when wce = wls)
+        cmp wls+1
+        bne @gt
+        lda wce
+        cmp wls
+        beq @nt
+@gt:    lda wls
+        sta P3
+        lda wls+1
+        sta P3+1
+        sec
+        lda wce
+        sbc wls
+        sta T1
+        lda wce+1
+        sbc wls+1
+        sta T2
+        lda T1                  ; the length field is the count less one
+        bne @c1
+        dec T2
+@c1:    dec T1
+        lda #4
+        ldx T5
+        jsr fmrange
+        bcs @err
+        lda #2
+        sta T5
+@nt:    jsr wrcr                ; the CR of the line
+        bcs @err
+        jsr wpinc               ; the next line starts after the CR (or after wlast when there is no CR)
+        lda wp
+        sta wls
+        lda wp+1
+        sta wls+1
+        jmp @l2
+@done:  clc
+        rts
+@err:   sec
+        rts
+
+; the CR (the mode of the first write is 3, of the others 1; then 2 for the next)
+wrcr:   lda #4
+        jsr fmset
+        ldy #1
+        lda T5
+        cmp #4
+        beq @c3
+        lda #1
+        bne @c4
+@c3:    lda #3
+@c4:    sta (P2),y
+        ldy #8
+        lda #CR
+        sta (P2),y
+        ldx #1
+        jsr fmcall
+        bcs @x
+        lda #2
+        sta T5
+@x:     rts
+
+; wp (a pointer in the text): the byte at wp -> A; wp + 1; wp >= wend (carry set) / wp >= wlast (carry set)
+wpget:  lda wp
+        sta P1
+        lda wp+1
+        sta P1+1
+        ldy #0
+        lda (P1),y
+        rts
+wpinc:  inc wp
+        bne @x
+        inc wp+1
+@x:     rts
+wpend:  lda wp+1
+        cmp wend+1
+        bne @h
+        lda wp
+        cmp wend
+@h:     rts
+
 writeto:
         jsr fmdel
         bcs @x
@@ -4375,71 +4713,10 @@ writeto:
         beq @w
         sec
 @x:     rts
-@w:     lda #4                  ; part before the gap
-        sta T5
-        lda pre
-        ora pre+1
-        beq @tail
-        lda bufs
-        sta P3
-        lda bufs+1
-        sta P3+1
-        sec
-        lda pre
-        sbc #1
-        sta T1
-        lda pre+1
-        sbc #0
-        sta T2
-        lda #4
-        ldx #4
-        jsr fmrange
+@w:     jsr gapend              ; the gap to the end: the text is one piece at bufmem
+        jsr wrtrim
         bcs @errc
-        lda #2
-        sta T5
-@tail:  sec                     ; part after the gap
-        lda bufe
-        sbc gape
-        sta T1
-        lda bufe+1
-        sbc gape+1
-        sta T2
-        ora T1
-        beq @cr
-        lda T1
-        bne @t1
-        dec T2
-@t1:    dec T1
-        lda gape
-        sta P3
-        lda gape+1
-        sta P3+1
-        lda #4
-        ldx T5
-        jsr fmrange
-        bcs @errc
-        lda #2
-        sta T5
-@cr:    lda len                 ; the last line ends with a CR in the file
-        ora len+1
-        beq @cl
-        lda #4
-        jsr fmset
-        ldy #1
-        lda T5
-        cmp #4
-        beq @c3
-        lda #1
-        bne @c4
-@c3:    lda #3
-@c4:    sta (P2),y
-        ldy #8                  ; the single byte goes where the range address would be
-        lda #CR
-        sta (P2),y
-        ldx #1
-        jsr fmcall
-        bcs @errc
-@cl:    jmp fmclose
+        jmp fmclose
 @errc:  pha
         jsr fmclose
         pla
@@ -4465,16 +4742,16 @@ load:   jsr fmopen
 @e2:    sec
         rts
 @r:     jsr newbuf
-        lda bufs
+        lda #<bufmem
         sta P3
-        lda bufs+1
+        lda #>bufmem
         sta P3+1
         sec                     ; read at most the whole buffer less one byte
         lda bufe
-        sbc bufs
+        sbc #<bufmem
         sta T1
         lda bufe+1
-        sbc bufs+1
+        sbc #>bufmem
         sta T2
         lda T1
         bne @d
@@ -4726,10 +5003,10 @@ scanin: lda P3
 
 ; a fresh file of T3/T4 bytes at bufs: the gap goes after it
 gotin:  clc
-        lda bufs
+        lda #<bufmem
         adc T3
         sta gaps
-        lda bufs+1
+        lda #>bufmem
         adc T4
         sta gaps+1
         lda T3
@@ -4738,8 +5015,6 @@ gotin:  clc
         lda T4
         sta pre+1
         sta len+1
-        jsr countlines
-        rts
 
 ; nlines = number of CRs + 1
 countlines:
@@ -4747,81 +5022,36 @@ countlines:
         sta nlines
         lda #0
         sta nlines+1
-        lda bufs
+        lda #<bufmem
         sta P1
-        lda bufs+1
+        lda #>bufmem
         sta P1+1
-@l:     lda P1
-        cmp gaps
-        bne @a
-        lda P1+1
-        cmp gaps+1
-        bne @a
-        lda gape
-        sta P1
-        lda gape+1
-        sta P1+1
-@a:     lda P1
-        cmp bufe
-        bne @b
-        lda P1+1
-        cmp bufe+1
-        beq @x
-@b:     ldy #0
-        lda (P1),y
+@l:     jsr tbyte
+        bcs @x
         cmp #CR
-        bne @n
-        inc nlines
-        bne @n
-        inc nlines+1
-@n:     inc P1
         bne @l
-        inc P1+1
-        jmp @l
+        inc nlines
+        bne @l
+        inc nlines+1
+        bne @l
 @x:     rts
 
 ; is every line at most MAXLN bytes? carry set if not
 chklines:
-        lda bufs
+        lda #<bufmem
         sta P1
-        lda bufs+1
+        lda #>bufmem
         sta P1+1
-        lda #0
-        sta T0
-@l:     lda P1
-        cmp gaps
-        bne @a
-        lda P1+1
-        cmp gaps+1
-        bne @a
-        lda gape
-        sta P1
-        lda gape+1
-        sta P1+1
-@a:     lda P1
-        cmp bufe
-        bne @b
-        lda P1+1
-        cmp bufe+1
-        beq @ok
-@b:     ldy #0
-        lda (P1),y
+@z:     ldx #0                  ; the length of the line
+@l:     jsr tbyte
+        bcs @ok
         cmp #CR
-        bne @c
-        lda #0
-        sta T0
-        beq @n
-@c:     inc T0
-        lda T0
-        cmp #MAXLN+1
-        bcs @bad
-@n:     inc P1
-        bne @l
-        inc P1+1
-        jmp @l
+        beq @z
+        inx
+        cpx #MAXLN+1
+        bcc @l
+        rts                     ; (carry set)
 @ok:    clc
-        rts
-@bad:   sec
         rts
 
         .segment "RODATA"
@@ -4832,48 +5062,20 @@ savesp: .res 1
 iie:    .res 1
 shidle: .res 1
 shift:  .res 1
-bufs:   .res 2
-bufe:   .res 2
-gaps:   .res 2
-gape:   .res 2
-pre:    .res 2
-len:    .res 2
-eoff:   .res 2
-ls:     .res 2
-cln:    .res 2
-nlines: .res 2
-ci:     .res 1
 goal:   .res 1
 keepgoal: .res 1
-topl:   .res 2
-topr:   .res 1
-topln:  .res 2
-modf:   .res 1
 han:    .res 1
 lower:  .res 1
 nums:   .res 1
 numw:   .res 1
 tw:     .res 1
-hascr:  .res 1
-lbn:    .res 1
-ni:     .res 1
-lnoff:  .res 2
-dirty:  .res 1
-dmode:  .res 1
 edfull: .res 1
 tries:  .res 1
 orows:  .res 1
 olen:   .res 1
-drr:    .res 1
-drk:    .res 1
-drl:    .res 2
-drln:   .res 2
 drows:  .res 1
 dcol:   .res 1
-dinrun: .res 1
 crow:   .res 1
-msgp:   .res 2
-stlen:  .res 1
 svx:    .res 1
 svy:    .res 1
 sgx:    .res 1
@@ -4884,11 +5086,8 @@ psn:    .res 1
 psmax:  .res 1
 pscol:  .res 1
 psin:   .res 1
-numv:   .res 2
 numlen: .res 1
 numbuf: .res 6
-sbn:    .res 1
-cbn:    .res 1
 cwn:    .res 1
 force:  .res 1
 argp:   .res 1
@@ -4896,7 +5095,6 @@ argn:   .res 1
 fnlen:  .res 1
 lscur:  .res 1                  ; the catalog sector being listed
 lsmore: .res 1
-lssel:  .res 1
 lssec:  .res ROWS               ; sector and offset of each listed row
 lsoffs: .res ROWS
 fnp:    .res 2                  ; the name for the file manager: fname or tmpname
@@ -4913,7 +5111,6 @@ fpos:   .res 1
 efrom:  .res 1
 dfrom:  .res 1
 psdry:  .res 1
-stfull: .res 1
 stend:  .res 1
 stpart: .res 1                  ; status: 1 = the length is unchanged, 2 = only the changed part is drawn
 stbg:   .res 1
@@ -4926,11 +5123,8 @@ patn:   .res 1
 pidx:   .res 1
 pat:    .res 64
 patf:   .res 64
-fl:     .res 2
-fln:    .res 2
 fstart: .res 1
 fwrap:  .res 1
-ib:     .res 4
 ; ten tables, one slot per screen row. scroll1 and scroll2 move them as one block: keep them together, in this order
 sl_lo:  .res ROWS+1
 sl_hi:  .res ROWS+1
@@ -4945,18 +5139,22 @@ rowlen: .res ROWS+1
 STABN   = rowlen + ROWS + 1 - sl_lo
 u:      .res 256
 fmbuf:  .res 6
-cut:    .res 1
+ddrv:   .res 1                  ; the current disk
+dslot:  .res 1
 taoff:  .res 1
 dcnt:   .res 1
 comp:   .res 1
 compp:  .res 1
 compn:  .res 1
 fulld:  .res 1
-lsoff:  .res 1
-lsrow:  .res 1
 holdv:  .res 1
 holdn:  .res 1
 ulv:    .res 1
+wp:     .res 2                  ; the trimmed save (wrtrim): the scan pointer, the line start, the end of the text,
+wls:    .res 2                  ; the end of the text written, the end of the line's text
+wend:   .res 2
+wlast:  .res 2
+wce:    .res 2
 ubn:    .res 1
 uls:    .res 2
 ub:     .res 252

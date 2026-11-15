@@ -23,6 +23,6 @@ if __name__ == "__main__":
     print("frames per key (max 8):", sorted(s.frames("k4"), reverse=True)[:8])
     s.sheet(p, s.ROOT / "work" / "sess" / "k4.png", cols=3)
     got = s.hname_get(d, "DLFRL")
-    want = s.hi("BBB\rBBB\rZAAA\rCCC\r\r")
+    want = s.hi("BBB\rBBB\rZAAA\rCCC\r")  # (KEDIT 1.12: the empty line at the end is not saved)
     print("saved:", got)
     print("OK" if got == want else f"MISMATCH want {want!r}")
