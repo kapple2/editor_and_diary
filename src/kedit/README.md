@@ -1,4 +1,4 @@
-# KEDIT 1.12: a Korean text editor for K-HANGEUL
+# KEDIT 1.15: a Korean text editor for K-HANGEUL
 
 A full-screen text editor for the Apple II Plus (DOS 3.3, 48K, language card) on the K-HANGEUL 1.2b driver.
 It is written entirely in 6502 assembly (ca65). It needs no BASIC program and no K-BASIC.
@@ -65,14 +65,10 @@ draw the screen once.
 | `번호` | `NU` | show / hide line numbers |
 | `목록 [disk]` | `LS [disk]`, `CAT` | the files on the disk (lock mark, type, sectors, name). At a full page and at the end: Ctrl-K / Ctrl-J choose a row (shown inverse), RETURN opens it (asks about unsaved changes first; a non-text file is refused), ESC goes back to the text, any other key shows the next page (on the last page it goes back) |
 | `디스크 S6,D2` | `CHD S6,D2` | the disk (slot, drive) that E, R, W and LS use from now on: DOS 3.3's `S6,D2`, `D2`, `S5` (also `2` = drive 2, `62` = slot 6 drive 2); it shows `디스크 [S6,D2]`. At start it is the DOS default disk. `LS S6,D2` lists that disk and makes it the current one (as in DOS) |
-| `복사` | `CP`, `COPY` | copy the cursor line (same as Ctrl-G) |
-| `붙임` | `PU`, `PASTE` | put the kept line above the cursor line (same as Ctrl-P) |
 | `정보` | `I` | size of the text and free memory, in bytes |
-| `지움 [N]` | `D [N]` | delete the cursor line, or N lines from it |
-| `문단지움` | `DP` | delete the paragraph: from the cursor line to the next empty line |
-| `모두지움!` | `DA!` | delete the whole text (the file on the disk is not touched until you save) |
+| `다지움!` | `DA!` | delete the whole text (the file on the disk is not touched until you save) |
 | `도움` | `H`, `HELP`, `?` | key and command list |
-| `새` | `N`, `NEW` | new empty text with no name. With unsaved changes it asks `저장할까요? Y:저장 N:버림 다른 키:취소` (Y saves first, and is refused without a file name; N drops the changes; any other key cancels). `N!` drops unsaved changes without asking |
+| `새로` | `N`, `NEW` | new empty text with no name. With unsaved changes it asks `저장할까요? Y:저장 N:버림 다른 키:취소` (Y saves first, and is refused without a file name; N drops the changes; any other key cancels). `N!` drops unsaved changes without asking |
 
 Longer English names also work: `SAVE`, `QUIT`, `OPEN`, `FIND`, `LIST`, `DIR`.
 
@@ -80,7 +76,7 @@ File names may be Hangul (`열기 일기`) or English.
 
 ## Limits
 
-- Text up to 7,431 bytes (1.12: the save writes the lines without their trailing spaces and without the empty lines after the last text; 7,755 in 1.11: the Shift keys on the command line; 7,765 in 1.10: the program got smaller; 6,461 in 1.9; 6,718 before CHD, 1.8).
+- Text up to 7,364 bytes (1.13: rows are cleared with the driver's fast clear, `FASTCLR`; 7,431 in 1.12: the save writes the lines without their trailing spaces and without the empty lines after the last text; 7,755 in 1.11: the Shift keys on the command line; 7,765 in 1.10: the program got smaller; 6,461 in 1.9; 6,718 before CHD, 1.8).
 - A line holds at most 250 bytes; a file with a longer line is refused.
 - The saved file always ends its last line with Return.
 - Ctrl-R covers the edits of one line. Joining, splitting or deleting lines cannot be undone, except a cut line (Ctrl-P).
@@ -96,6 +92,7 @@ File names may be Hangul (`열기 일기`) or English.
 
 ## Building and testing
 
+- **Source layout (since 2026-11-15):** the editor itself (keys, editing, gap buffer, layout, drawing, command line, search, file manager calls) is in `src/common/` and is shared with KDIARY; `kedit.s` includes it and holds KEDIT's own code (start, file commands, catalog, load and save, variables). A change in `src/common/` changes both programs: see `src/common/README.md`. The split did not change `KEDIT.bin` (1.12: byte for byte the same).
 - `python src/kedit/build.py` writes `build/gen.inc` (Korean messages, command table, jamo tables), then assembles
   and links `build/KEDIT.bin` (load address `$4000`). It prints the sizes.
 - `python src/tools/mkdisk.py` builds `disk/kedit/KEDIT.dsk` from `disk/khangeul-base.dsk` (DOS 3.3, K-HANGEUL, fonts).
@@ -106,8 +103,8 @@ File names may be Hangul (`열기 일기`) or English.
   For the Saturn 128K card set `KEDIT_MAME_ARGS=-sl0 ssram` first.
   They compare the saved files byte for byte with the expected text, and leave screenshots in `work/sess/`.
   1 type and save; 2 a real 8 KB file: paging, search, edits, insert, save as; 3 wrap, syllable moves, case, help;
-  4 cut/put a line, Ctrl-R, info, Hangul file name, catalog; 5 typing ahead; 6 delete commands, Ctrl-X, HELP; 7 Backspace in Hangul;
-  11 the catalog (choose and open, asking about unsaved changes), E asking, Ctrl-G / CP and Ctrl-P / PU;
+  4 cut/put a line, Ctrl-R, info, Hangul file name, catalog; 5 typing ahead; 6 delete keys (Ctrl-C, Ctrl-Y), Ctrl-X, HELP; 7 Backspace in Hangul;
+  11 the catalog (choose and open, asking about unsaved changes), E asking, Ctrl-G and Ctrl-P;
   10 the free bytes on the status bar (against a Ctrl-L redraw) and N with unsaved changes;
   8 one-row scrolling up and down (frames per key, and the screen against a full redraw); 9 safe save (over a file, a locked
   file, a full disk).
@@ -116,8 +113,8 @@ File names may be Hangul (`열기 일기`) or English.
 
 ## How it works
 
-- Memory (1.12): code, messages and tables `$4000-$6EB7` (11,960 bytes), variables to `$76F8`,
-  then the text as a gap buffer up to `HIMEM` (`$9400`): 7,431 bytes. The 38 busiest variables are in the zero page (the equates near the
+- Memory (1.13): code, messages and tables `$4000-$6EFA` (12,027 bytes), variables to `$773B`,
+  then the text as a gap buffer up to `HIMEM` (`$9400`): 7,364 bytes. The 38 busiest variables are in the zero page (the equates near the
   top of `kedit.s`): work bytes of Applesoft that the driver, DOS and the monitor do not touch. They are not cleared at the start (BSS is):
   a new one must be set before it is read.
 - Comparing two builds: `python src/tools/kregress.py run <tag> [KEDIT.bin kedit.lbl]` runs all the tests with that binary and keeps the screens

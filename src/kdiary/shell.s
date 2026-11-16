@@ -608,24 +608,7 @@ inv:    lda #$3F                ; inverse video
         sta INVFLG
         rts
 
-; clear the screen rows A to X-1 and no others, with the driver's own fast clear (the one HOME ends up in): the control
-; code Ctrl-L is its CLEARHOME, which clears the rows WNDTOP to WNDBTM-1 (and homes the cursor to the window's top left).
-; So the window is set to those rows for the one character, then put back. The rows' own lengths (rowlen) are the
-; caller's business, and so is the cursor.
-fastclr:
-        sta WNDTOP
-        stx WNDBTM
-        lda #46                 ; (the driver's clear loops move WNDWDTH bytes of a row)
-        sta WNDWDTH
-        lda #$8C
-        jsr putc
-        lda #WIDE
-        sta WNDWDTH
-        lda #16
-        sta WNDBTM
-        lda #0
-        sta WNDTOP
-        rts
+        .include "../common/fastclr.s"
 
 ; the top line (screen row 0) is an inverse bar like the status row: topbeg (or topat: from column X), print, topend
 topbeg: ldx #0
@@ -1120,7 +1103,7 @@ getpw:  lda #16
         rts
 @esc:   lda started
         bne @back
-        jmp quit_prog
+        jmp tobasic
 @back:  pla
         pla
         rts
@@ -1273,7 +1256,7 @@ askdrive:
         ldx #0
         jsr getline
         bcc @g
-        jmp quit_prog
+        jmp tobasic
 @g:     jsr parsedisk
         bcs @bad
         lda nslot
@@ -1402,7 +1385,7 @@ askdate:
         ldx #2
         jsr getline
         bcc @g
-        jmp quit_prog
+        jmp tobasic
 @g:     ldx #0                  ; keep only the digits (2026-11-14 -> 20261114)
         ldy #0
 @l:     cpx inl
@@ -1436,7 +1419,7 @@ shell:  jsr askdrive
         inc started             ; (the picture's memory is free now)
         jsr askdate
         jsr calendar
-        jmp quit_prog
+        jmp tobasic
 
 ; ---------------------------------------------------------------------------------------------------------------
 ; the month calendar
@@ -2731,7 +2714,9 @@ drawtop:
 @draw:  lda otlen
         bpl @part
         jsr tophead             ; ($FF) nothing is there yet: the date and the weekday too
-        lda #2
+        lda #':'|$80            ; "2026-11-14 토요일: title" (the colon, then a blank)
+        jsr putc
+        lda #1
         jsr spaces
         jmp @ttl
 @part:  ldx #19                 ; the title only

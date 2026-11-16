@@ -8,6 +8,10 @@ rem
 rem   disk\kdiary\KDIARY.DSK : K-HANGEUL, fonts, KSTART, KDIARY (the diary), KEYS, KEYCFG
 rem   disk\kdiary\           : DIARY_MANUAL.md / .html / .pdf, RELEASE.txt (src\kdiary), nbyte.py, kdiary_decrypt.py (copies)
 rem
+rem Sources: src\kedit (KEDIT), src\kdiary (KDIARY, KDEXPORT) and src\common (the editor code that both programs
+rem assemble: a change there changes both, and this file builds both). The two build.py scripts are run by
+rem mkdisk.py and mkdiary.py.
+rem
 rem   disk\khangeul-base.dsk is the base image the disks are built from (it stays in disk\).
 rem
 rem The manuals are copied from src\docs (remake them first with python src\tools\mkmanual.py [DIARY]).
@@ -41,6 +45,7 @@ copy /y "src\kdiary\RELEASE.txt" "disk\kdiary\" >nul
 if errorlevel 1 goto fail
 
 echo.
+echo Shared source: src\common (both programs were assembled from it)
 echo BUILD OK: disk\kedit\ (KEDIT.dsk, manual, RELEASE.txt, nbyte.py) and disk\kdiary\ (KDIARY.DSK, manual, RELEASE.txt, nbyte.py, kdiary_decrypt.py)
 endlocal
 exit /b 0

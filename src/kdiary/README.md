@@ -1,10 +1,10 @@
-# KDIARY v1.08: Korean diary for the Apple II Plus (K-HANGEUL)
+# KDIARY v1.12: Korean diary for the Apple II Plus (K-HANGEUL)
 
-Built from a copy of KEDIT's editor (`src/kedit` is untouched). Design: `PRD_DIARY.md` (root, not tracked).
+The editor is KEDIT's: since v1.09 both programs assemble the same code from `src/common/` (before that KDIARY had its own copy). Design: `PRD_DIARY.md` (root, not tracked).
 
-Build: `python src/tools/mkdiary.py` (or `build_all.bat`) -> `disk/kdiary/KDIARY.DSK`. Source: `src/kdiary/` (`kdiary.s` = the editor,
+Build: `python src/tools/mkdiary.py` (or `build_all.bat`) -> `disk/kdiary/KDIARY.DSK`. Source: `src/common/` (the editor code shared with KEDIT: see its README) and `src/kdiary/` (`kdiary.s` = the start, the editor's entry and exit, the variables,
 `shell.s` = password, date, calendar, list, entry files; `shellbss.s`; `gen.py` messages; `build.py`).
-Start screens: a splash picture (`art.py`, in segment SPLASH, the last one in the file; the editor's line arrays in BSS lie over it; shown only on the start screens, before the first password is accepted) and the footer `캐플 2026  v1.08` (the version, set by `VERSION` in `gen.py`).
+Start screens: a splash picture (`art.py`, in segment SPLASH, the last one in the file; the editor's line arrays in BSS lie over it; shown only on the start screens, before the first password is accepted) and the footer `캐플 2026  v1.12` (the version, set by `VERSION` in `gen.py`).
 
 The manual `src/docs/DIARY_MANUAL.md` carries the same version number in its title (check that they agree).
 
@@ -44,7 +44,7 @@ The movement keys are the ones in the `KEYS` map (KEYCFG changes them for both K
 4. **List** (`L`): every entry of every month file on the disk (the catalog is read, then the flags of each month: it takes a
    moment). Rows are `2026-11-14  title`, oldest first, 12 to a page; the page starts at the chosen month. Up/down move by entry,
    `<` `>` (or left/right) a page, 8 digits jump to that date (or the next entry), RETURN opens, ESC goes back. Up to 96 months.
-5. **Writing**: KEDIT's editor on screen rows 2-15; row 1 is the top line (an inverse bar: date, weekday, then the title = the first line of the
+5. **Writing**: KEDIT's editor on screen rows 2-15; row 1 is the top line (an inverse bar: date, weekday, `:`, then the title = the first line of the
    text, redrawn when it changes). ESC opens the command line: `W` save, `Q` leave (refuses if changed: `Q!` leaves anyway),
    `WQ` save and leave, `H` help. All KEDIT edit keys work. The text is limited to **1,200 bytes**; at the limit typing is
    refused (the status bar shows the free bytes). Saving an empty text deletes the entry.

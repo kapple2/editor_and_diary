@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="generator" content="pandoc" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>KEDIT 1.12 사용 설명서</title>
+  <title>KEDIT 1.14 사용 설명서</title>
   <style type="text/css">
       code{white-space: pre-wrap;}
       span.smallcaps{font-variant: small-caps;}
@@ -41,8 +41,8 @@
   </style>
 </head>
 <body>
-<h1 id="kedit-112-사용-설명서">KEDIT 1.12 사용 설명서</h1>
-<p>이 설명서는 <strong>KEDIT 1.12</strong>의 설명서입니다. 편집기를 켜면 맨 아랫줄 처음 메시지에 같은 판 번호(<code>KEDIT 1.12</code>)가 나옵니다. 판이 다르면 설명이 다를 수 있습니다.</p>
+<h1 id="kedit-114-사용-설명서">KEDIT 1.14 사용 설명서</h1>
+<p>이 설명서는 <strong>KEDIT 1.14</strong>의 설명서입니다. 편집기를 켜면 맨 아랫줄 처음 메시지에 같은 판 번호(<code>KEDIT 1.14</code>)가 나옵니다. 판이 다르면 설명이 다를 수 있습니다.</p>
 <p>KEDIT는 애플 II 플러스에서 한글과 영문을 함께 쓰는 전체 화면 글 편집기입니다. K-HANGEUL 한글 드라이버 위에서 돌아가며, 전부 6502 어셈블리로 만들었습니다. BASIC이나 K-BASIC은 필요 없습니다.</p>
 <p>키는 바꿀 수 있습니다: 시작할 때 디스크의 <code>KEYS</code> 파일을 읽고, Applesoft 프로그램 <code>KEYCFG</code>로 <code>KEYS</code>를 고칩니다 (12장). 디스크에 들어 있는 <code>KEYS</code>는 5장의 키입니다.</p>
 <h2 id="1-필요한-것">1. 필요한 것</h2>
@@ -83,7 +83,7 @@
 <li><strong>끝:</strong> <code>ESC</code>를 누르고 <code>Q</code>(또는 <code>끝</code>)를 친 다음 <code>RETURN</code>. <code>]</code> 프롬프트로 돌아갑니다.</li>
 <li>KEDIT는 BASIC 프로그램이 쓰는 메모리를 씁니다. 메모리에 있던 BASIC 프로그램은 없어집니다.</li>
 </ul>
-<p>편집기가 뜨면 화면은 비어 있고, 왼쪽 위에 커서가 있으며, 맨 아랫줄에 <code>KEDIT 1.12 ESC: 명령</code>이 보입니다. <code>KEYS</code> 파일이 없거나 잘못되었으면 대신 <code>KEYS 파일이 없거나 잘못되어 기본 키를 씁니다</code>가 나오고 5장의 키를 씁니다.</p>
+<p>편집기가 뜨면 화면은 비어 있고, 왼쪽 위에 커서가 있으며, 맨 아랫줄에 <code>KEDIT 1.14 ESC: 명령</code>이 보입니다. <code>KEYS</code> 파일이 없거나 잘못되었으면 대신 <code>KEYS 파일이 없거나 잘못되어 기본 키를 씁니다</code>가 나오고 5장의 키를 씁니다.</p>
 <h2 id="3-화면">3. 화면</h2>
 <pre><code>0-14줄   글 (한 줄 46칸. 영문 1칸, 한글 한 글자 2칸)
 15줄     영 ABC 줄 12/39 칸 7 여유 7312 * DIARY      (반전된 상태 줄)
@@ -492,7 +492,7 @@
 <tbody>
 <tr class="odd">
 <td>글의 크기</td>
-<td>7,431바이트. 넘으면 <code>메모리가 가득 찼습니다</code>, 큰 파일은 <code>파일이 너무 큽니다</code></td>
+<td>7,364바이트. 넘으면 <code>메모리가 가득 찼습니다</code>, 큰 파일은 <code>파일이 너무 큽니다</code></td>
 </tr>
 <tr class="even">
 <td>한 줄의 길이</td>
@@ -599,7 +599,7 @@ acx -p KEDIT.dsk MEMO TXT 0 &lt; memo.nb
 <ul>
 <li><code>TXT</code>는 대문자로 씁니다. 소문자로 쓰면 <code>acx</code>가 이진 파일(B)로 넣어서 KEDIT가 열지 못합니다.</li>
 <li>PC의 글 파일은 UTF-8로 저장합니다. 한글, 영문, 숫자, ASCII 기호만 쓸 수 있습니다. 한자나 그림 글자가 있으면 <code>encode</code>가 오류를 냅니다. 가운뎃점 ㆍ(U+318D)도 마찬가지이므로 마침표 <code>.</code>로 바꿔 쓰십시오.</li>
-<li>KEDIT의 한계는 그대로입니다. 바꾼 파일이 7,431바이트를 넘거나 한 줄이 250바이트를 넘으면 열리지 않습니다.</li>
+<li>KEDIT의 한계는 그대로입니다. 바꾼 파일이 7,364바이트를 넘거나 한 줄이 250바이트를 넘으면 열리지 않습니다.</li>
 <li><code>acx</code>는 이름에 제어 문자를 받지 못해서 한글 이름 파일은 꺼내거나 넣지 못합니다. 영문 이름으로 넣은 뒤 KEDIT에서 <code>저장 한글이름</code>으로 다시 저장하고, 꺼낼 때는 반대로 영문 이름으로 저장한 뒤 꺼내십시오.</li>
 <li>에뮬레이터가 디스크 이미지를 열고 있는 동안에는 <code>acx</code>로 넣거나 꺼내지 마십시오.</li>
 </ul>
@@ -641,7 +641,7 @@ acx -p KEDIT.dsk MEMO TXT 0 &lt; memo.nb
 <td>찾는 낱말이 없습니다</td>
 </tr>
 <tr class="even">
-<td><code>모르는 명령입니다</code></td>
+<td><code>모르는 명령어입니다</code></td>
 <td>명령 이름이 틀렸습니다</td>
 </tr>
 <tr class="odd">
@@ -689,6 +689,16 @@ acx -p KEDIT.dsk MEMO TXT 0 &lt; memo.nb
 <li><code>←</code>는 모든 기종에서 커서를 왼쪽으로 옮깁니다. 전에는 II Plus에서 앞 글자를 지웠습니다.</li>
 <li>II 플러스에서 Shift 키 개조가 있으면 Shift+<code>←</code>가 앞 글자를 지웁니다. IIe에서는 <code>←</code>가 그냥 왼쪽으로 옮깁니다.</li>
 <li>글의 크기 한계가 6,992바이트에서 6,983바이트로 줄었습니다 (코드 9바이트 늘었습니다).</li>
+</ul>
+<p><strong>1.14 (2026-11-15)</strong></p>
+<ul>
+<li>명령 줄(ESC)의 메시지 <code>모르는 명령입니다</code>가 <code>모르는 명령어입니다</code>로 바뀌었습니다. 한글 명령(<code>찾기</code>, <code>줄</code>, <code>번호</code>, <code>복사</code>, <code>붙임</code>, <code>지움</code>, <code>문단지움</code>, <code>모두지움</code>, <code>정보</code> 등)은 전과 같이 칩니다. 바뀐 것은 메시지뿐입니다.</li>
+</ul>
+<p><strong>1.13 (2026-11-15)</strong></p>
+<ul>
+<li>쓰는 법은 그대로입니다. 화면의 줄을 지울 때 글자마다 빈칸을 찍지 않고 드라이버의 빠른 지우기를 씁니다: <code>Ctrl-L</code>(화면 다시 그리기), 글 끝 뒤의 긴 줄, 목록과 도움말의 남은 줄. 편집기를 켠 직후에도 빈 화면을 다시 지우지 않습니다.</li>
+<li>편집기 코드를 KDIARY(일기장)와 함께 쓰도록 정리했습니다 (<code>src\common</code>).</li>
+<li>글의 크기 한계가 7,431바이트에서 7,364바이트로 줄었습니다 (코드 67바이트).</li>
 </ul>
 <p><strong>1.12 (2026-11-15)</strong></p>
 <ul>

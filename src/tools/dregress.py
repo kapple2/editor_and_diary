@@ -167,7 +167,8 @@ def run_all(tag, binp, lbl, only=None):
 def compare(a, b):
     from PIL import Image, ImageChops
     bad = 0
-    for ja in sorted((REG / a).glob("*.json")):
+    import re
+    for ja in sorted(p for p in (REG / a).glob("*.json") if re.fullmatch(r"[A-Z][A-Z0-9]*", p.stem)):   # (not the KEDIT k<N>.json of kregress.py)
         jb = REG / b / ja.name
         if not jb.exists():
             print(f"{ja.stem}: not in {b}")

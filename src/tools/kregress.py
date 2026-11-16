@@ -64,7 +64,8 @@ def run_all(tag, binp, lbl, only=None):
 def compare(a, b):
     from PIL import Image, ImageChops
     bad = 0
-    for ja in sorted((REG / a).glob("k*.json"), key=lambda p: int(p.stem[1:])):
+    import re
+    for ja in sorted((p for p in (REG / a).glob("k*.json") if re.fullmatch(r"k\d+", p.stem)), key=lambda p: int(p.stem[1:])):
         jb = REG / b / ja.name
         if not jb.exists():
             continue

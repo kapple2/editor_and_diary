@@ -1,5 +1,5 @@
 """KEDIT in MAME: the catalog (목록 / LS) lets you choose a file and open it; E and the catalog ask before dropping
-unsaved changes; Ctrl-G copies a line and Ctrl-P pastes it (also the commands CP and PU); the full width of 46 columns.
+unsaved changes; Ctrl-G copies a line and Ctrl-P pastes it; the full width of 46 columns.
 Ctrl-J and Ctrl-K are sent with the K step (MAME types Ctrl-J as Return)."""
 import session as s
 
@@ -28,7 +28,7 @@ steps = [W, "T <ES>LS", "E", "W 300", "S list",
          # E with a changed text asks too; Y saves it
          "T Z", W, "T <ES>E CCC", "E", "W 200", "S E asks", "T Y", "W 900", "S CCC open",
          # copy a line and paste it twice, with the keys and with the commands
-         "T <x07>", W, "T <x10>", W, "T <x10>", W, "T <ES>CP", "E", W, "T <ES>PU", "E", W,
+         "T <x07>", W, "T <x10>", W, "T <x10>", W, "T <x07>", W, "T <x10>", W,
          "S copied and pasted", "T <ES>W", "E", "W 900", W, "T <ES>Q!", "E", "W 600"]
 
 

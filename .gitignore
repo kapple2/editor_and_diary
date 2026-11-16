@@ -17,9 +17,26 @@ __pycache__/
 Thumbs.db
 Desktop.ini
 .DS_Store
+*.swp
+*~
+*.bak
+*.tmp
+nul
+
+# per-user Claude Code settings
+.claude/settings.local.json
+
+# scratch copies of disk images (e.g. "KDIARY - Copy.DSK")
+* - Copy.*
+* - Copy (*).*
 
 # notes and plans in the project root (handover, plans, analyses) stay out of the repository
 /*.md
+/EDITOR-PLAN.md
+/HANDOVER.md
+/KEY-CONFIG*.md
+/PRD_DIARY.md
+/TODO-KEDIT*.md
 
 # posting material (video)
 posting/

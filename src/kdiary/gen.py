@@ -14,7 +14,7 @@ OUT = HERE / "build" / "gen.inc"
 
 # The version: <major>.<minor><bug fix>, two digits after the point (v1.00, v1.50, v1.51). Change it here (and in README.md,
 # HANDOVER.md) with every change of the program; it is shown in the footer of the start screens.
-VERSION = "1.08"
+VERSION = "1.12"
 FOOT = "캐플 2026  v" + VERSION
 
 MSGS = {
@@ -28,7 +28,7 @@ MSGS = {
     "m_notsaved": "저장하지 않았습니다",
     "m_full": "메모리가 가득 찼습니다",
     "m_unsaved": "저장 안 했습니다 (Q! 로 나가기)",
-    "m_badcmd": "모르는 명령입니다",
+    "m_badcmd": "모르는 명령어입니다",
     "m_diskerr": "디스크 오류 ",
     "m_locked": "파일이 잠겨 있습니다",
     "m_wprot": "쓰기 금지된 디스크입니다",
@@ -106,7 +106,7 @@ HELPU = [
     "{20} {5}  파일 처음/끝  {12}  화면 다시 그림",
     "{19}/DEL 앞 글자 지움  {4}  글자 지움",
     "{24}  줄 끝까지 지움   {25}  줄 지움 ({16} 넣기)",
-    "{7}  줄 복사 ({16} 넣기)",
+    "{7}  줄 복사 ({16} 넣기)   {3}  문단 지움",
     "^A  한글/영문   {17}  대문자/소문자  {9}  탭",
 ] + HELP[9:]
 HELP = HELPU
@@ -140,6 +140,11 @@ CMDS = [
     ("끝", ["Q"], "cmd_q"),
     ("저장끝", ["WQ", "X"], "cmd_wq"),
     ("도움", ["H", "?"], "cmd_h"),
+    ("찾기", ["F", "FIND"], "cmd_f"),
+    ("줄", ["G"], "cmd_g"),
+    ("번호", ["NU"], "cmd_nu"),
+    ("정보", ["I"], "cmd_i"),
+    ("다지움", ["DA"], "cmd_da"),
 ]
 CALCMDS = [("끝", ["Q"], "ccmd_q"), ("도움", ["?", "H"], "ccmd_h"), ("디스크", ["CHD"], "ccmd_chd"), ("목록", ["LS"], "ccmd_ls")]
 CHELP = ["일기 달력 도움말",
@@ -153,10 +158,7 @@ CHELP = ["일기 달력 도움말",
          "  목록 S6,D1   그 디스크의 파일 목록 (LS)",
          "  디스크 S6,D2   데이터 디스크 (CHD)",
          "  도움 (?)    끝 (Q)"]
-CMDS_LETTERS = [
-    ("G", "cmd_g"), ("NU", "cmd_nu"), ("CP", "k_copy"), ("PU", "k_paste"), ("F", "cmd_f"),
-    ("I", "cmd_i"), ("D", "cmd_d"), ("DP", "cmd_dp"), ("DA", "cmd_da"),
-]
+CMDS_LETTERS = []                                      # (the English words are aliases in CMDS now)
 
 CONS = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ"       # class 1..19
 VOWS = "ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅛㅜㅠㅡㅣ"                 # class $81..$8E

@@ -1,14 +1,14 @@
 10  REM KEYCFG - KEDIT KEY SETUP
 20  REM WRITES THE FILE KEYS (32 BYTES AT $300)
 30  REM KEDIT READS IT AT START (BRUN KEDIT)
-40  D$ =  CHR$ (4):N = 21:SP$ = "                                             "
-50  DIM K(31),A(21),A$(21),G(21),E$(21),KC$(21),KD(21),IX(31),NC(21)
+40  D$ =  CHR$ (4):N = 22:SP$ = "                                             "
+50  DIM K(31),A(22),A$(22),G(22),E$(22),KC$(22),KD(22),IX(31),NC(22)
 60  FOR I = 1 TO N: READ A(I),A$(I): NEXT
 70  DATA 2,"왼쪽",21,"오른쪽",11,"위 줄",10,"아래 줄"
 80  DATA 15,"줄 처음",14,"줄 끝",23,"앞 쪽",26,"다음 쪽"
 90  DATA 20,"글 처음",5,"글 끝",19,"앞 글자 지움",4,"글자 지움"
 100  DATA 24,"줄 끝까지 지움",25,"줄 지움",16,"줄 붙임",7,"줄 복사"
-110  DATA 18,"줄 되돌림",6,"다시 찾기",17,"대소문자",9,"탭",12,"다시 그림"
+110  DATA 18,"줄 되돌림",6,"다시 찾기",17,"대소문자",9,"탭",12,"다시 그림",3,"문단 지움"
 120  GOSUB 800
 130  ONERR  GOTO 160
 140  PRINT D$"BLOAD KEYS,A$300"
