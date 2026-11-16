@@ -1,16 +1,16 @@
-# KDIARY v1.12: Korean diary for the Apple II Plus (K-HANGEUL)
+# KDIARY v1.13: Korean diary for the Apple II Plus (K-HANGEUL)
 
 The editor is KEDIT's: since v1.09 both programs assemble the same code from `src/common/` (before that KDIARY had its own copy). Design: `PRD_DIARY.md` (root, not tracked).
 
 Build: `python src/tools/mkdiary.py` (or `build_all.bat`) -> `disk/kdiary/KDIARY.DSK`. Source: `src/common/` (the editor code shared with KEDIT: see its README) and `src/kdiary/` (`kdiary.s` = the start, the editor's entry and exit, the variables,
 `shell.s` = password, date, calendar, list, entry files; `shellbss.s`; `gen.py` messages; `build.py`).
-Start screens: a splash picture (`art.py`, in segment SPLASH, the last one in the file; the editor's line arrays in BSS lie over it; shown only on the start screens, before the first password is accepted) and the footer `캐플 2026  v1.12` (the version, set by `VERSION` in `gen.py`).
+Start screens: a splash picture (`art.py`, in segment SPLASH, the last one in the file; the editor's line arrays in BSS lie over it; shown only on the start screens, before the first password is accepted) and the footer `캐플 2026  v1.13` (the version, set by `VERSION` in `gen.py`).
 
 The manual `src/docs/DIARY_MANUAL.md` carries the same version number in its title (check that they agree).
 
 **Version rule:** `<major>.<minor><bug fix>` with two digits after the point (v1.00, v1.50, v1.51). Every change of the program raises it
 (`VERSION` in `gen.py`, this title, the HANDOVER entry); minor = a new feature, last digit = a fix.
-Boot: HELLO -> KSTART -> `BRUN K-HANGEUL`, `BRUN KDIARY` (load `$4000`, 15.3 KB, variables to `$8103`, text space 4,860 bytes: an entry needs 1,200, the list 1,152).
+Boot: HELLO -> KSTART -> `BRUN K-HANGEUL`, `BRUN KDIARY` (load `$4000`, KDIARY.bin 16,445 bytes, variables to `$873C`, text space 3,267 bytes (`$873D`-`$93FF`): an entry needs 1,200).
 
 ## Use
 
@@ -43,11 +43,11 @@ The movement keys are the ones in the `KEYS` map (KEYCFG changes them for both K
 
 4. **List** (`L`): every entry of every month file on the disk (the catalog is read, then the flags of each month: it takes a
    moment). Rows are `2026-11-14  title`, oldest first, 12 to a page; the page starts at the chosen month. Up/down move by entry,
-   `<` `>` (or left/right) a page, 8 digits jump to that date (or the next entry), RETURN opens, ESC goes back. Up to 96 months.
+   left/right move one entry as up/down do; `<` `>` (or `,` `.`) a page, 8 digits jump to that date (or the next entry), RETURN opens, ESC goes back. Up to 96 months.
 5. **Writing**: KEDIT's editor on screen rows 2-15; row 1 is the top line (an inverse bar: date, weekday, `:`, then the title = the first line of the
    text, redrawn when it changes). ESC opens the command line: `W` save, `Q` leave (refuses if changed: `Q!` leaves anyway),
    `WQ` save and leave, `H` help. All KEDIT edit keys work. The text is limited to **1,200 bytes**; at the limit typing is
-   refused (the status bar shows the free bytes). Saving an empty text deletes the entry.
+   refused (the status bar shows the free bytes). Saving an empty text (if the day had an entry) asks `Y:지움 다른 키:저장 안 함`: Y deletes the entry, any other key keeps the old one.
 
 ## Files (on the program disk for now)
 
@@ -63,7 +63,7 @@ The movement keys are the ones in the `KEYS` map (KEYCFG changes them for both K
 
 Week view (W), year view (Y), search (S); several data disks, the master index `일기디스크`, the per-disk index `일기목록`,
 the label `일기표`, disk prompts and formatting a data disk (4.2, 4.3); import from LTM (6); changing the password (9.7).
-Today every file goes on the disk in the DOS default drive. The editor commands E, R, N, LS were removed.
+The data disk is the one chosen on the first screen (or with `CHD` in the calendar). The editor commands E, R, N were removed; `LS` is a calendar command.
 
 ## Memory and speed (v0.53)
 
@@ -97,7 +97,7 @@ Passed on the 16K card; test 2 also on the Saturn card (`KEDIT_MAME_ARGS=-sl0 ss
 ## KDEXPORT v0.31: the converter (a separate program, `export.s`, on the same disk)
 
 `BRUN KDEXPORT` at the DOS prompt (after the diary ended; K-HANGEUL stays in memory). It asks the disk with the diary and the
-disk to write on (RETURN / `2` / `52` as above; they may be the same disk or different drives), then the password, and writes
+disk to write on (RETURN / `2` / `62` as above; they may be the same disk or different drives), then the password, and writes
 one **plain, not encrypted** text file per month, `DIARY-2026-11` (N-byte text form, entries `2026-11-14` + the text +
 blank line). On the PC: `acx -g disk.dsk DIARY-2026-11 out.bin`, then `python nbyte.py decode out.bin out.txt` (UTF-8).
 Tests: `test_kdexport.py` (A: all on disk 1, files to disk 2; B: diary on disk 2, files to disk 1), `test_kdiary6.py` (diary data on drive 2).

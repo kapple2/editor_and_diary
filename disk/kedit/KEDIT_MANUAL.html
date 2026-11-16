@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="generator" content="pandoc" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>KEDIT 1.14 사용 설명서</title>
+  <title>KEDIT 1.15 사용 설명서</title>
   <style type="text/css">
       code{white-space: pre-wrap;}
       span.smallcaps{font-variant: small-caps;}
@@ -41,8 +41,8 @@
   </style>
 </head>
 <body>
-<h1 id="kedit-114-사용-설명서">KEDIT 1.14 사용 설명서</h1>
-<p>이 설명서는 <strong>KEDIT 1.14</strong>의 설명서입니다. 편집기를 켜면 맨 아랫줄 처음 메시지에 같은 판 번호(<code>KEDIT 1.14</code>)가 나옵니다. 판이 다르면 설명이 다를 수 있습니다.</p>
+<h1 id="kedit-115-사용-설명서">KEDIT 1.15 사용 설명서</h1>
+<p>이 설명서는 <strong>KEDIT 1.15</strong>의 설명서입니다. 편집기를 켜면 맨 아랫줄 처음 메시지에 같은 판 번호(<code>KEDIT 1.15</code>)가 나옵니다. 판이 다르면 설명이 다를 수 있습니다.</p>
 <p>KEDIT는 애플 II 플러스에서 한글과 영문을 함께 쓰는 전체 화면 글 편집기입니다. K-HANGEUL 한글 드라이버 위에서 돌아가며, 전부 6502 어셈블리로 만들었습니다. BASIC이나 K-BASIC은 필요 없습니다.</p>
 <p>키는 바꿀 수 있습니다: 시작할 때 디스크의 <code>KEYS</code> 파일을 읽고, Applesoft 프로그램 <code>KEYCFG</code>로 <code>KEYS</code>를 고칩니다 (12장). 디스크에 들어 있는 <code>KEYS</code>는 5장의 키입니다.</p>
 <h2 id="1-필요한-것">1. 필요한 것</h2>
@@ -83,7 +83,7 @@
 <li><strong>끝:</strong> <code>ESC</code>를 누르고 <code>Q</code>(또는 <code>끝</code>)를 친 다음 <code>RETURN</code>. <code>]</code> 프롬프트로 돌아갑니다.</li>
 <li>KEDIT는 BASIC 프로그램이 쓰는 메모리를 씁니다. 메모리에 있던 BASIC 프로그램은 없어집니다.</li>
 </ul>
-<p>편집기가 뜨면 화면은 비어 있고, 왼쪽 위에 커서가 있으며, 맨 아랫줄에 <code>KEDIT 1.14 ESC: 명령</code>이 보입니다. <code>KEYS</code> 파일이 없거나 잘못되었으면 대신 <code>KEYS 파일이 없거나 잘못되어 기본 키를 씁니다</code>가 나오고 5장의 키를 씁니다.</p>
+<p>편집기가 뜨면 화면은 비어 있고, 왼쪽 위에 커서가 있으며, 맨 아랫줄에 <code>KEDIT 1.15 ESC: 명령</code>이 보입니다. <code>KEYS</code> 파일이 없거나 잘못되었으면 대신 <code>KEYS 파일이 없거나 잘못되어 기본 키를 씁니다</code>가 나오고 5장의 키를 씁니다.</p>
 <h2 id="3-화면">3. 화면</h2>
 <pre><code>0-14줄   글 (한 줄 46칸. 영문 1칸, 한글 한 글자 2칸)
 15줄     영 ABC 줄 12/39 칸 7 여유 7312 * DIARY      (반전된 상태 줄)
@@ -257,6 +257,10 @@
 <td><code>Ctrl-G</code></td>
 <td>커서가 있는 줄을 복사해 기억해 둡니다 (줄은 그대로). <code>Ctrl-P</code>로 넣습니다</td>
 </tr>
+<tr class="even">
+<td><code>Ctrl-C</code></td>
+<td>문단 지움: 커서 줄부터 다음 빈 줄 앞까지 지웁니다. 지운 마지막 줄은 기억해 둡니다 (<code>Ctrl-P</code>)</td>
+</tr>
 </tbody>
 </table>
 <h3 id="되돌리기">되돌리기</h3>
@@ -338,7 +342,7 @@
 <tr class="even">
 <td><code>열기 이름</code></td>
 <td><code>E 이름</code>, <code>OPEN</code></td>
-<td>파일을 엽니다. 없는 이름이면 새 파일로 시작합니다. 고친 글이 있으면 <code>저장할까요? Y:저장 N:버림 다른 키:취소</code>라고 묻습니다 (<code>새</code>와 같습니다). <code>E!</code>는 묻지 않고 버리고 엽니다</td>
+<td>파일을 엽니다. 없는 이름이면 새 파일로 시작합니다. 고친 글이 있으면 <code>저장할까요? Y:저장 N:버림 다른 키:취소</code>라고 묻습니다 (<code>새로</code>와 같습니다). <code>E!</code>는 묻지 않고 버리고 엽니다</td>
 </tr>
 <tr class="odd">
 <td><code>넣기 이름</code></td>
@@ -346,7 +350,7 @@
 <td>다른 파일을 커서 자리에 끼워 넣습니다</td>
 </tr>
 <tr class="even">
-<td><code>새</code></td>
+<td><code>새로</code></td>
 <td><code>N</code>, <code>NEW</code></td>
 <td>이름 없는 빈 글로 시작합니다. 저장한 글이면 바로 시작합니다. 고친 글이 있으면 <code>저장할까요? Y:저장 N:버림 다른 키:취소</code>라고 묻습니다. <code>Y</code>는 저장한 뒤 새 글을 시작하고 (이름이 없으면 <code>파일 이름이 필요합니다</code>가 나오고 그대로 남습니다. <code>저장 이름</code>으로 먼저 저장하십시오), <code>N</code>은 고친 것을 버리고 시작하고, 다른 키는 취소합니다. <code>N!</code>, <code>새!</code>는 묻지 않고 버립니다</td>
 </tr>
@@ -359,16 +363,6 @@
 <td><code>디스크 S6,D2</code></td>
 <td><code>CHD S6,D2</code></td>
 <td>파일(<code>열기</code>, <code>넣기</code>, <code>저장</code>, <code>목록</code>)을 읽고 쓸 디스크를 바꿉니다. DOS 3.3 방식으로 <code>S6,D2</code>(슬롯 6, 드라이브 2), <code>D2</code>(드라이브 2), <code>S5</code>(슬롯 5)라고 씁니다. <code>2</code>, <code>62</code>도 됩니다 (숫자 하나는 드라이브, 둘은 슬롯과 드라이브). 바꾸면 <code>디스크 [S6,D2]</code>라고 알려 줍니다. 시작할 때는 DOS의 기본 디스크입니다</td>
-</tr>
-<tr class="odd">
-<td><code>복사</code></td>
-<td><code>CP</code>, <code>COPY</code></td>
-<td><code>Ctrl-G</code>와 같습니다. 커서 줄을 기억해 둡니다</td>
-</tr>
-<tr class="even">
-<td><code>붙임</code></td>
-<td><code>PU</code>, <code>PASTE</code></td>
-<td><code>Ctrl-P</code>와 같습니다. 기억해 둔 줄을 커서 줄 위에 넣습니다</td>
 </tr>
 <tr class="odd">
 <td><code>끝</code></td>
@@ -430,17 +424,7 @@
 </thead>
 <tbody>
 <tr class="odd">
-<td><code>지움 [N]</code></td>
-<td><code>D [N]</code></td>
-<td>커서 줄을 지웁니다. N을 주면 커서 줄부터 N줄을 지웁니다</td>
-</tr>
-<tr class="even">
-<td><code>문단지움</code></td>
-<td><code>DP</code></td>
-<td>커서 줄부터 다음 빈 줄 앞까지 지웁니다</td>
-</tr>
-<tr class="odd">
-<td><code>모두지움!</code></td>
+<td><code>다지움!</code></td>
 <td><code>DA!</code></td>
 <td>글 전체를 지웁니다. 디스크의 파일은 저장하기 전까지 그대로입니다</td>
 </tr>
@@ -477,7 +461,7 @@
 <p>다음은 되돌릴 수 없습니다.</p>
 <ul>
 <li>줄을 붙이거나 나눈 것 (나눈 줄은 <code>←</code>로 다시 붙일 수 있습니다).</li>
-<li><code>지움 N</code>, <code>문단지움</code>, <code>모두지움!</code>으로 지운 여러 줄 (마지막 한 줄만 <code>Ctrl-P</code>로 살릴 수 있습니다).</li>
+<li><code>다지움!</code>으로 지운 글 전체.</li>
 <li><code>넣기</code>로 끼워 넣은 파일.</li>
 </ul>
 <p>크게 고치기 전에 먼저 저장하십시오. 잘못되면 <code>E! 이름</code>으로 저장해 둔 파일을 다시 엽니다.</p>
@@ -633,8 +617,8 @@ acx -p KEDIT.dsk MEMO TXT 0 &lt; memo.nb
 <td>고친 글이 있습니다. 저장하거나 <code>!</code>를 붙이십시오</td>
 </tr>
 <tr class="even">
-<td><code>모두 지우려면 DA! 또는 모두지움!</code></td>
-<td><code>모두지움</code>에는 <code>!</code>가 필요합니다</td>
+<td><code>모두 지우려면 DA! 또는 다지움!</code></td>
+<td><code>다지움</code>에는 <code>!</code>가 필요합니다</td>
 </tr>
 <tr class="odd">
 <td><code>찾지 못했습니다</code></td>
@@ -673,7 +657,7 @@ acx -p KEDIT.dsk MEMO TXT 0 &lt; memo.nb
 <p><strong>1.4 (2026-11-12)</strong></p>
 <ul>
 <li>상태 줄에 <code>여유</code>(글을 더 쓸 수 있는 바이트 수)가 항상 보입니다. 치거나 지우면 바로 바뀝니다. 상태 줄은 바뀐 부분만 다시 그립니다.</li>
-<li><code>새</code>(<code>N</code>)는 고친 글이 있으면 저장할지 묻습니다 (6장).</li>
+<li><code>새로</code>(<code>N</code>)는 고친 글이 있으면 저장할지 묻습니다 (6장).</li>
 <li>글의 크기 한계가 7,851바이트에서 7,644바이트로 줄었습니다 (위 두 기능의 코드 207바이트).</li>
 </ul>
 <p><strong>1.5 (2026-11-12)</strong></p>
@@ -689,6 +673,12 @@ acx -p KEDIT.dsk MEMO TXT 0 &lt; memo.nb
 <li><code>←</code>는 모든 기종에서 커서를 왼쪽으로 옮깁니다. 전에는 II Plus에서 앞 글자를 지웠습니다.</li>
 <li>II 플러스에서 Shift 키 개조가 있으면 Shift+<code>←</code>가 앞 글자를 지웁니다. IIe에서는 <code>←</code>가 그냥 왼쪽으로 옮깁니다.</li>
 <li>글의 크기 한계가 6,992바이트에서 6,983바이트로 줄었습니다 (코드 9바이트 늘었습니다).</li>
+</ul>
+<p><strong>1.15 (2026-11-15)</strong></p>
+<ul>
+<li>복사, 붙임, 지움, 문단지움은 명령 낱말이 아니라 키입니다: <code>Ctrl-G</code>(복사), <code>Ctrl-P</code>(붙임), <code>Ctrl-Y</code>(줄 지움), <code>Ctrl-C</code>(문단 지움, 새 키). <code>D N</code>(여러 줄 지움)은 없어졌습니다: <code>Ctrl-Y</code>를 여러 번 누릅니다.</li>
+<li><code>모두지움</code>은 <code>다지움</code>, <code>새</code>는 <code>새로</code>로 바뀌었습니다 (<code>DA!</code>, <code>N</code>은 그대로).</li>
+<li>키 바꾸기(KEYCFG)에 <code>문단 지움</code>이 들어갔습니다 (22개).</li>
 </ul>
 <p><strong>1.14 (2026-11-15)</strong></p>
 <ul>
@@ -775,7 +765,7 @@ acx -p KEDIT.dsk MEMO TXT 0 &lt; memo.nb
 <ol>
 <li>편집기를 끝냅니다 (<code>ESC</code>, <code>Q</code>, <code>RETURN</code>). <code>]</code> 프롬프트가 나옵니다.</li>
 <li><code>RUN KEYCFG</code> 를 치고 RETURN. (K-HANGEUL이 올라 있는 디스크에서 하십시오. <code>KEDIT.dsk</code>로 부팅한 뒤 편집기를 끝내면 됩니다.)</li>
-<li>명령 21개가 두 줄(왼쪽 11개, 오른쪽 10개)로 한꺼번에 나오고, 명령마다 지금 붙은 키가 보입니다. 화면은 이렇게 보입니다 (한글 화면입니다).</li>
+<li>명령 22개가 두 줄(왼쪽 11개, 오른쪽 11개)로 한꺼번에 나오고, 명령마다 지금 붙은 키가 보입니다. 화면은 이렇게 보입니다 (한글 화면입니다).</li>
 </ol>
 <pre><code>KEDIT 키 설정  (반전 = 키를 잃음)
 &gt;왼쪽           ^B      글자 지움      ^D
@@ -788,7 +778,7 @@ acx -p KEDIT.dsk MEMO TXT 0 &lt; memo.nb
  다음 쪽        ^Z      대소문자       ^Q
  글 처음        ^T      탭             ^I
  글 끝          ^E      다시 그림      ^L
- 앞 글자 지움   ^S
+ 앞 글자 지움   ^S      문단 지움      ^C
 
 컨트롤 키 = 이 동작에 붙임  ^U 다음  ^H 앞
 C 지움 R 처음으로 S 저장 Q 끝 I ^I 붙임
@@ -839,7 +829,7 @@ C 지움 R 처음으로 S 저장 Q 끝 I ^I 붙임
 </tr>
 </tbody>
 </table>
-<p><strong>명령 21개:</strong> 커서 왼쪽·오른쪽·위·아래, 줄 처음·끝, 쪽 위·아래, 파일 처음·끝, 앞 글자 지움, 글자 지움, 줄 끝까지 지움, 줄 지움, 줄 넣기(붙임), 줄 복사, 줄 되돌리기, 다시 찾기, 대문자/소문자, 탭, 화면 다시 그림.</p>
+<p><strong>명령 22개:</strong> 커서 왼쪽·오른쪽·위·아래, 줄 처음·끝, 쪽 위·아래, 파일 처음·끝, 앞 글자 지움, 글자 지움, 줄 끝까지 지움, 줄 지움, 문단 지움, 줄 넣기(붙임), 줄 복사, 줄 되돌리기, 다시 찾기, 대문자/소문자, 탭, 화면 다시 그림.</p>
 <p><strong>바꿀 수 없는 것</strong></p>
 <ul>
 <li>키: <code>Ctrl-A</code>(한글/영문), <code>Ctrl-H</code>(<code>←</code>), <code>Ctrl-M</code>(RETURN), <code>ESC</code>. 누르면 <code>^A 는 고정 키</code>처럼 나옵니다. 이 네 키는 항상 원래 일을 합니다.</li>
@@ -893,7 +883,7 @@ C 지움 R 처음으로 S 저장 Q 끝 I ^I 붙임
 <tr class="even">
 <td><code>Ctrl-C</code></td>
 <td>화면 다시 그림</td>
-<td>(쓰지 않던 키)</td>
+<td>문단 지움</td>
 </tr>
 <tr class="odd">
 <td><code>Ctrl-B</code></td>
@@ -916,7 +906,7 @@ C 지움 R 처음으로 S 저장 Q 끝 I ^I 붙임
 <tbody>
 <tr class="odd">
 <td>10-110</td>
-<td>시작. 명령 21개의 번호와 이름(한글)을 <code>DATA</code>에서 읽어 <code>A()</code>, <code>A$()</code>에 넣습니다</td>
+<td>시작. 명령 22개의 번호와 이름(한글)을 <code>DATA</code>에서 읽어 <code>A()</code>, <code>A$()</code>에 넣습니다</td>
 </tr>
 <tr class="even">
 <td>120-160</td>
@@ -962,7 +952,7 @@ C 지움 R 처음으로 S 저장 Q 끝 I ^I 붙임
 <li>PC에서 <code>KEYS</code>를 만들어 넣을 수도 있습니다: 32바이트 파일을 만들어 <code>acx -p KEDIT.dsk KEYS bin 0x300 &lt; keys.bin</code>.</li>
 </ul>
 <h3 id="126-디스크-만들기-build_allbat">12.6 디스크 만들기 (<code>build_all.bat</code>)</h3>
-<p>프로젝트 폴더에서 <code>build_all.bat</code>를 실행하면 <code>disk\kedit\KEDIT.dsk</code>가 만들어집니다 (그 폴더에 매뉴얼과 RELEASE.txt, <code>nbyte.py</code>도 복사됩니다) (cc65, 파이썬 3, AppleCommander <code>acx</code>가 필요합니다). 같은 일을 직접 하려면 <code>python src\tools\mkdisk.py</code>.</p>
+<p>프로젝트 폴더에서 <code>build_all.bat</code>를 실행하면 <code>disk\kedit\KEDIT.dsk</code>와 일기장 디스크 <code>disk\kdiary\KDIARY.DSK</code>가 만들어집니다 (그 폴더에 매뉴얼과 RELEASE.txt, <code>nbyte.py</code>도 복사됩니다) (cc65, 파이썬 3, AppleCommander <code>acx</code>가 필요합니다). 같은 일을 직접 하려면 <code>python src\tools\mkdisk.py</code>.</p>
 <ul>
 <li>편집기만 다시 만들 때: <code>python src\kedit\build.py</code> (<code>build\KEDIT.bin</code>).</li>
 <li><code>KEYS</code>는 디스크를 만들 때마다 원래 키로 새로 씁니다. 디스크에서 <code>KEYCFG</code>로 바꾼 키는 디스크를 다시 만들면 없어집니다. 바꾼 키를 보관하려면 <code>acx -g KEDIT.dsk KEYS keys.bin</code>으로 꺼내 두십시오.</li>

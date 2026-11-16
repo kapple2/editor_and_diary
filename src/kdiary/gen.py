@@ -14,7 +14,7 @@ OUT = HERE / "build" / "gen.inc"
 
 # The version: <major>.<minor><bug fix>, two digits after the point (v1.00, v1.50, v1.51). Change it here (and in README.md,
 # HANDOVER.md) with every change of the program; it is shown in the footer of the start screens.
-VERSION = "1.12"
+VERSION = "1.13"
 FOOT = "캐플 2026  v" + VERSION
 
 MSGS = {
@@ -107,6 +107,7 @@ HELPU = [
     "{19}/DEL 앞 글자 지움  {4}  글자 지움",
     "{24}  줄 끝까지 지움   {25}  줄 지움 ({16} 넣기)",
     "{7}  줄 복사 ({16} 넣기)   {3}  문단 지움",
+    "{18}  줄 되돌리기      {6}  다시 찾기",
     "^A  한글/영문   {17}  대문자/소문자  {9}  탭",
 ] + HELP[9:]
 HELP = HELPU

@@ -168,7 +168,7 @@ the lookups, one message).
 - **Help:** `gen.py` writes the help lines with a slot `{n}` (a byte below `$80`, n = the action number) wherever a key is
   named. `helpx` (called from `cmd_h`) copies each line to `cb`, replaces a slot by `^` and the first key whose map entry is n
   (`^-` if none), and shows that. A slot is two characters wide, like `^B`.
-- **KEYCFG** (`src/kedit/keycfg.bas`, Applesoft, screens in Hangul; the source is UTF-8 and `mkdisk.py` turns each Hangul run into Ctrl-K, two-set keys, Ctrl-A before `acx -bas`): one screen lists all 21 actions in two columns with their keys;
+- **KEYCFG** (`src/kedit/keycfg.bas`, Applesoft, screens in Hangul; the source is UTF-8 and `mkdisk.py` turns each Hangul run into Ctrl-K, two-set keys, Ctrl-A before `acx -bas`): one screen lists all 22 actions in two columns (11 and 11) with their keys;
   The right and left arrows (Ctrl-U, Ctrl-H; also `N`/`P`, space) move the `>`. A control key is assigned to the marked action, Ctrl-I included (Tab is Ctrl-I on a IIe; `I` also assigns Ctrl-I, for a II Plus). Arrows cannot be assigned: Ctrl-U and Ctrl-H are taken by the moves. `C` clear,
   `R` reset (classic or IJKL), `S` save, `Q` quit. An action that lost its key to another, or has none, is shown in inverse.
   The screen is drawn in full (from `HOME`, top to bottom) only at start and after the reset menu. A key press redraws only the entries whose

@@ -14,7 +14,7 @@ binary (`KEDIT.bin`, `KDIARY.bin`), so sharing costs no memory.
 | `main.s` | The main loop (`main`), the way back to BASIC (`tobasic`) |
 | `keys.s` | Reading keys (`getkey`), the key map and `dispatch`, small key actions, `k_redraw` |
 | `move.s` | Cursor movement |
-| `edit.s` | Typing, Hangul input, backspace and delete, lines (join, split, cut, copy, paste), the commands `D`, `DP`, `DA`, undo (`k_undo`), `ed_begin` / `ed_line` / `ed_lines` |
+| `edit.s` | Typing, Hangul input, backspace and delete, lines (join, split, cut, copy, paste), the command `DA` (`cmd_da`), the line keys Ctrl-C (`cmd_dp`) and Ctrl-Y (`k_delln`), undo (`k_undo`), `ed_begin` / `ed_line` / `ed_lines` |
 | `gap.s` | The gap buffer: `newbuf`, `insbytes`, `delbytes`, `gapto`, line loading |
 | `layout.s` | The layout of the line being edited (units, columns, rows) |
 | `screen.s` | Drawing: `putc`, `gotoxy`, `refresh`, scrolling, `drawfrom`, the status bar |
