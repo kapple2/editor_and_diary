@@ -14,6 +14,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 BASE = ROOT / "disk" / "khangeul-base.dsk"
 KHDISK = ROOT.parent / "proj-apple2-korean-high-resolution" / "DIST-github" / "disk" / "K-HANGEUL.DSK"
+KHBUILD = KHDISK.parents[1] / "src" / "driver" / "build"      # K-HANGEUL's own build output: newer than its disk
 DRIVER = (("K-HANGEUL", "0x0F94"), ("FONT12", "0x6000"), ("FONT6X10", "0x7200"))       # file, load address
 KSTART = b"BRUN K-HANGEUL\nBRUN KEDIT\n"
 KEYS = bytes(range(32))     # the classic keys: every key runs its own action (KEYCFG, R, 2 gives the IJKL set)
@@ -40,14 +41,16 @@ def keycfg_source(nbyte):
 
 
 def sync_base():
-    """Bring the driver and the fonts on the base image up to date with the K-HANGEUL project's disk.
+    """Bring the driver and the fonts on the base image up to date with the K-HANGEUL project: its build folder (src/driver/build/*.bin) if the file is there,
+    else its disk.
     Returns the names of the files replaced."""
     if not KHDISK.exists():
         print(f"mkdisk: {KHDISK} not found; using {BASE.name} as it is")
         return []
     changed = []
     for name, addr in DRIVER:
-        new = acx("-g", KHDISK, name)
+        binf = KHBUILD / (name + ".bin")
+        new = binf.read_bytes() if binf.exists() else acx("-g", KHDISK, name)
         if new != acx("-g", BASE, name):
             acx("-d", BASE, name)
             acx("-p", BASE, name, "bin", addr, inp=new)

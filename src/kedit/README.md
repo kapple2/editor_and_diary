@@ -96,8 +96,9 @@ File names may be Hangul (`열기 일기`) or English.
 - `python src/kedit/build.py` writes `build/gen.inc` (Korean messages, command table, jamo tables), then assembles
   and links `build/KEDIT.bin` (load address `$4000`). It prints the sizes.
 - `python src/tools/mkdisk.py` builds `disk/kedit/KEDIT.dsk` from `disk/khangeul-base.dsk` (DOS 3.3, K-HANGEUL, fonts).
-  It first replaces the driver and the fonts on the base image with those on the K-HANGEUL project's disk
-  (`..\proj-apple2-korean-high-resolution\DIST-github\disk\K-HANGEUL.DSK`) if they differ, and says so. After such an
+  It first replaces the driver and the fonts on the base image with K-HANGEUL's own build output
+  (`..\proj-apple2-korean-high-resolution\DIST-github\src\driver\build\*.bin`, newer than its disk; the project's
+  `disk\K-HANGEUL.DSK` is used for a file with no build output) if they differ, and says so. After such an
   update run all the tests on both cards.
 - Tests run KEDIT in MAME without a window, on a fresh disk each: `python src/tools/test_kedit1.py` ... `test_kedit13.py`.
   For the Saturn 128K card set `KEDIT_MAME_ARGS=-sl0 ssram` first.
